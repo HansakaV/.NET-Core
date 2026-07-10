@@ -41,6 +41,9 @@ namespace StudentManagement.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Phone")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("Students");
