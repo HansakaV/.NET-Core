@@ -4,10 +4,17 @@ using StudentManagement.API.Interfaces;
 using StudentManagement.API.Repositories;
 using StudentManagement.API.Services;
 using StudentManagement.API.Middlewares;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("Logs/logs.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
 // Add services to the container.
+builder.Host.UseSerilog();
 builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
