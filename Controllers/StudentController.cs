@@ -1,8 +1,6 @@
-using System.Collections;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using StudentManagement.API.DTOs;
-using StudentManagement.API.Models;
+using StudentManagement.API.Interfaces;
 
 namespace StudentManagement.API.Controllers;
 
@@ -10,64 +8,71 @@ namespace StudentManagement.API.Controllers;
 [ApiController]
 public class StudentController : ControllerBase
 {
-    private readonly Data.AppDBContext _context;
-    public StudentController(Data.AppDBContext context)
+    private readonly IStudentService _studentService;
+    public StudentController(IStudentService studentService)
     {
-        _context = context;
+        _studentService = studentService;
         
     }
 
 [HttpGet]
-public async Task<ActionResult<IEnumerable<Student>>> GetStudents()
+public async Task<ActionResult<IEnumerable<StudentResponseDto>>> GetStudents()
 {
-    return await _context.Students.ToListAsync();
+    return await _studentService.GetAllAsync();
 }
 
 [HttpGet("{id}")]
 public async Task<ActionResult<StudentResponseDto>> GetStudentById(int id)
     {
-        var student = await _context.Students.FindAsync(id);
+        var student = await _studentService.GetByIdAsync(id);
         if (student == null)
         {
             return NotFound();
         }
-         var response  = new StudentResponseDto
-         {
-             Id = student.Id,
-             Name = student.Name,
-             Email = student.Email,
-             Course = student.Course,
-             Phone = student.Phone
-         };
-         return Ok(response);
+        return Ok(student);
     }
 
 [HttpPost]
 public async Task<ActionResult<StudentResponseDto>> CreateStudent(StudentCreateRequestDto request)
-{
-    var student  = new Student
     {
-        Name = request.Name,
-        Email = request.Email,
-        Course = request.Course,
-        Phone = request.Phone
-    };
-    _context.Students.Add(student);
-    await _context.SaveChangesAsync();
+        var createdStudent = await _studentService.CreateAsync(request);
+        return CreatedAtAction(nameof(GetStudentById), new { id = createdStudent.Id }, createdStudent);
+    }
 
-    var response = new StudentResponseDto
+[HttpPut("{id}")]
+public async Task<IActionResult> UpdateStudent(int id, StudentUpdateRequestDto request)
     {
-        Id = student.Id,
-        Name = student.Name,
-        Email = student.Email,
-        Course = student.Course,
-        Phone = student.Phone
-    };
+        if (id != request.Id)
+        {
+            return BadRequest("ID mismatch");
+        }
 
-    return CreatedAtAction(nameof(GetStudentById),
-        new { id = student.Id }, 
-        response);
-}
+        try
+        {
+            await _studentService.UpdateAsync(request);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
+
+[HttpDelete("{id}")]
+public async Task<IActionResult> DeleteStudent(int id)
+    {
+        try
+        {
+            await _studentService.DeleteAsync(id);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
 
 }
 
