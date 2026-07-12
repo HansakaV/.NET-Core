@@ -1,6 +1,7 @@
 using StudentManagement.API.Interfaces;
 using StudentManagement.API.Models;
 using StudentManagement.API.DTOs;
+using Microsoft.Extensions.Caching.Memory;
 
 
 namespace StudentManagement.API.Services
@@ -8,25 +9,37 @@ namespace StudentManagement.API.Services
     public class StudentService : IStudentService
     {
         private readonly IStudentRepository _isStudentRepository;
-        public StudentService(IStudentRepository isStudentRepository)
+        private readonly IMemoryCache _cache;
+        private const string StudentCacheKey = "students_cache_key";
+        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache)
         {
             _isStudentRepository = isStudentRepository;
+            _cache = cache;
         }
 
         public async Task<List<StudentResponseDto>> GetAllAsync()
         {
-            var students = await _isStudentRepository.GetAllAsync();
-
-            return students.Select(student => new StudentResponseDto
+            if(_cache.TryGetValue(StudentCacheKey, out List<StudentResponseDto>? cachedStudents))
             {
-                Id = student.Id,
-                Name = student.Name,
-                Email = student.Email,
-                Course = student.Course,
-                Phone = student.Phone
-                
-            }).ToList();
-            
+                var students = await _isStudentRepository.GetAllAsync();
+
+                cachedStudents = students.Select(student => new StudentResponseDto
+                {
+                    Id = student.Id,
+                    Name = student.Name,
+                    Email = student.Email,
+                    Course = student.Course,
+                    Phone = student.Phone
+                }).ToList();
+
+                var cacheOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
+                    .SetSlidingExpiration(TimeSpan.FromMinutes(2));
+
+                _cache.Set(StudentCacheKey, cachedStudents, cacheOptions);
+
+            }
+            return cachedStudents!;
         }
         public async Task<StudentResponseDto?> GetByIdAsync(int id)
         {
@@ -57,6 +70,7 @@ namespace StudentManagement.API.Services
             };
 
             var createdStudent = await _isStudentRepository.CreateAsync(student);
+            _cache.Remove(StudentCacheKey); // Invalidate the cache after creating a new student
 
             return new StudentResponseDto
             {
@@ -84,7 +98,7 @@ namespace StudentManagement.API.Services
                 Phone = request.Phone ?? student.Phone
             };
             await _isStudentRepository.UpdateAsync(updatedStudent);
-
+            _cache.Remove(StudentCacheKey); // Invalidate the cache after updating a student
         }
 
         public async Task DeleteAsync(int id)
@@ -94,6 +108,7 @@ namespace StudentManagement.API.Services
             {
                 throw new KeyNotFoundException($"Student with ID {id} not found.");
             }
+            _cache.Remove(StudentCacheKey); // Invalidate the cache after deleting a student
         }
         
     }
