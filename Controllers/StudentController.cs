@@ -46,31 +46,14 @@ public async Task<IActionResult> UpdateStudent(int id, StudentUpdateRequestDto r
         {
             return BadRequest("ID mismatch");
         }
-
-        try
-        {
-            await _studentService.UpdateAsync(request);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-
+        await _studentService.UpdateAsync(request);
         return NoContent();
     }
 
 [HttpDelete("{id}")]
 public async Task<IActionResult> DeleteStudent(int id)
     {
-        try
-        {
-            await _studentService.DeleteAsync(id);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-
+        await _studentService.DeleteAsync(id);
         return NoContent();
     }
 
