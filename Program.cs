@@ -5,6 +5,9 @@ using StudentManagement.API.Repositories;
 using StudentManagement.API.Services;
 using StudentManagement.API.Middlewares;
 using Serilog;
+using FluentValidation;
+using StudentManagement.API.Validators.Students;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +22,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
+builder.Services.AddValidatorsFromAssemblyContaining<StudentCreateRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<AppDBContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStudentService, StudentService>();
@@ -30,6 +35,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "Student Management API V1");
+        options.RoutePrefix= "swagger";
+    }
+    );
 }
 
 app.UseExceptionHandler();
