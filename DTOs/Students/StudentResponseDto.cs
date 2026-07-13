@@ -1,3 +1,5 @@
+using StudentManagement.API.Enums;
+
 namespace StudentManagement.API.DTOs
 {
     public class StudentResponseDto
@@ -5,7 +7,7 @@ namespace StudentManagement.API.DTOs
         public int Id { get; set; }
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
-        public string Course { get; set; } = "";
-        public int Phone { get; set; }
+        public Courses Course ;
+        public string Phone { get; set; } = "";
     }
 }
