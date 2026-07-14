@@ -20,6 +20,13 @@ public async Task<IActionResult> Register(RegisterRequestDto registerRequest)
         await _authService.RegisterAsync(registerRequest);
         return StatusCode(StatusCodes.Status201Created);
     }
+
+[HttpPost("login")]
+public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto loginRequest)
+    {
+        var res = await _authService.LoginAsync(loginRequest);
+        return Ok(res);
+    }
 }
     
         
