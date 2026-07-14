@@ -49,7 +49,7 @@ namespace StudentManagement.API.Services
                 new Claim(ClaimTypes.Role, user.Role)
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                _configuration.GetSection("AppSettings:TokenSecret").Value ?? throw new InvalidOperationException("Secret Not Found")
+                _configuration.GetSection("JwtSettings:TokenSecret").Value ?? throw new InvalidOperationException("Secret Not Found")
                 ));
             
             var creds = new SigningCredentials(key , SecurityAlgorithms.HmacSha512Signature);
