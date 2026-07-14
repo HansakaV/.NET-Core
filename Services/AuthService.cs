@@ -22,7 +22,20 @@ namespace StudentManagement.API.Services
             var user = await _authRepository.GetByEmailAsync(forgotPasswordRequest.Email);
             if(user == null) throw new KeyNotFoundException("Email Not Found");
 
+            if(string.IsNullOrEmpty(user.VerificationCode) || user.VerificationCodeExpiry == null) throw new InvalidOperationException
+                ("Please Take and enter verification code first");
+
+            if(user.VerificationCodeExpiry < DateTime.UtcNow) throw new InvalidOperationException
+                ("Verification Code Expired.Try Again");
+            
+            if(user.VerificationCode != forgotPasswordRequest.VerificationCode) throw new ArgumentException
+                ("verification Code Invalid");
+            
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(forgotPasswordRequest.NewPassword);
+
+            user.VerificationCode = null;
+            user.VerificationCode = null;
+            
             await _authRepository.UpdateUserAsync(user);
             return true;
         }
@@ -83,5 +96,20 @@ namespace StudentManagement.API.Services
             
         }
 
+        public async Task<bool> SendVerifactionCodeAsync(SendVerificationCodeDto sendVerificationCode)
+        {
+            var user = await _authRepository.GetByEmailAsync(sendVerificationCode.Email);
+            if(user == null)throw new KeyNotFoundException("This email Not Registerd!");
+
+            var random = new Random();
+            string otp = random.Next(100000, 999999).ToString();
+
+            user.VerificationCode = otp;
+            user.VerificationCodeExpiry = DateTime.UtcNow.AddMinutes(2);
+            await _authRepository.UpdateUserAsync(user);
+
+            return true;
+
+        }
     }
 }

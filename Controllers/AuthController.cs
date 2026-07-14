@@ -27,7 +27,21 @@ public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto loginReq
         var res = await _authService.LoginAsync(loginRequest);
         return Ok(res);
     }
+
+
+[HttpPost("forgot-password")]
+public async Task<IActionResult> ForgotPassword(ForgotPasswordRequestDto forgotPasswordRequest)
+    {
+        await _authService.ForgotPasswordAsync(forgotPasswordRequest);
+        return StatusCode(StatusCodes.Status200OK);
+    }
+
+[HttpPost("send-verification-code")]
+public async Task<IActionResult> SendOTP([FromBody] SendVerificationCodeDto verificationCodeDto)
+    {
+        await _authService.SendVerifactionCodeAsync(verificationCodeDto);
+        return StatusCode(StatusCodes.Status200OK);
+    }       
 }
-    
-        
+
     

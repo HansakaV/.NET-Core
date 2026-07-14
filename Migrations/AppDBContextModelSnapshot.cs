@@ -78,6 +78,12 @@ namespace StudentManagement.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("VerificationCode")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VerificationCodeExpiry")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
                     b.ToTable("Users");
