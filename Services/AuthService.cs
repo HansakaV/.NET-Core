@@ -12,10 +12,12 @@ namespace StudentManagement.API.Services
     {
         private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
-        public AuthService(IAuthRepository authRepository , IConfiguration configuration)
+        private readonly IEmailService _emailService;
+        public AuthService(IAuthRepository authRepository , IConfiguration configuration, IEmailService emailService)
         {
             _authRepository = authRepository;
             _configuration = configuration;
+            _emailService = emailService;
         }
         public async Task<bool> ForgotPasswordAsync(ForgotPasswordRequestDto forgotPasswordRequest)
         {
@@ -35,7 +37,7 @@ namespace StudentManagement.API.Services
 
             user.VerificationCode = null;
             user.VerificationCode = null;
-            
+
             await _authRepository.UpdateUserAsync(user);
             return true;
         }
@@ -107,6 +109,16 @@ namespace StudentManagement.API.Services
             user.VerificationCode = otp;
             user.VerificationCodeExpiry = DateTime.UtcNow.AddMinutes(2);
             await _authRepository.UpdateUserAsync(user);
+
+            string emailBody =$@"<div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 5px;'>
+            <h2 style='color: #4CAF50;'>Password Reset Request</h2>
+            <p>Use this OTP code For Reset Your Password:</p>
+            <div style='background: #f9f9f9; padding: 10px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; color: #333;'>
+                {otp}
+            </div>
+            <p style='color: #777; font-size: 12px; margin-top: 20px;'>This OTP expires in 2 Minites.</p>
+        </div>";
+            await _emailService.SendEmailAsync(user.Email, "Student Management System - OTP",emailBody); 
 
             return true;
 
