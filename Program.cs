@@ -8,8 +8,14 @@ using Serilog;
 using FluentValidation;
 using StudentManagement.API.Validators.Students;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var jwtSecret = builder.Configuration["JwtSettings:TokenSecret"] ?? throw new InvalidOperationException("Secret Not Found");
+var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -25,16 +31,39 @@ builder.Services.AddControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<StudentCreateRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<AppDBContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//DI Registration
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+//JWT Authentication Cofiguration
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(Options =>
+{
+    Options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = key,
+
+        ValidateIssuer = true,
+        ValidIssuer = "StudentManagement.API",
+
+        ValidateAudience = true,
+        ValidAudience = "StudentManagement.Client",
+
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// Add Memory Cache
 builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+//HTTP Request Pipeline Configuration
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -48,6 +77,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
