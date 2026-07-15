@@ -11,6 +11,8 @@ using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Reflection.Metadata;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +26,44 @@ Log.Logger = new LoggerConfiguration()
 
 // Add services to the container.
 builder.Host.UseSerilog();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        var securitySchema = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description ="Enter Valid JWT Token"
+        };
+        document.Components ??=new OpenApiComponents();
+        document.Components.SecuritySchemes.Add("Bearer", securitySchema);
+
+        var secuirtyRequirements = new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }   
+        };
+        document.SecurityRequirements = new List<OpenApiSecurityRequirement>
+        {
+            new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecurityScheme { Reference = new OpenApiReference {Type = ReferenceType.SecurityScheme, Id ="Bearer"}}] = new List<string>()
+            }
+        };
+        return Task.CompletedTask;
+    });  
+});
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
@@ -71,10 +110,12 @@ if (app.Environment.IsDevelopment())
     {
         options.SwaggerEndpoint("/openapi/v1.json", "Student Management API V1");
         options.RoutePrefix= "swagger";
+        options.EnablePersistAuthorization();
     }
     );
 }
 
+//Middlewares
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
