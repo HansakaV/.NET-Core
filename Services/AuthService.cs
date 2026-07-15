@@ -64,20 +64,20 @@ namespace StudentManagement.API.Services
                 new Claim(ClaimTypes.Role, user.Role)
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                _configuration.GetSection("JwtSettings:TokenSecret").Value ?? throw new InvalidOperationException("Secret Not Found")
-                ));
+                _configuration["JwtSettings:TokenSecret"]!));
             
             var creds = new SigningCredentials(key , SecurityAlgorithms.HmacSha512Signature);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(1),
-                SigningCredentials = creds
-            };
-             var tokenHandler = new JwtSecurityTokenHandler();
-             var token = tokenHandler.CreateToken(tokenDescriptor);
-
-             return tokenHandler.WriteToken(token);
+            var token = new JwtSecurityToken(
+                issuer:_configuration["JwtSettings:Issuer"],
+                audience:_configuration["JwtSettings:Audience"],
+                claims : claims,
+                expires : DateTime.UtcNow.AddMinutes(
+                    Convert.ToDouble(
+                        _configuration["JwtSettings:ExpiryMinuts"])),
+                signingCredentials: creds
+                 
+            );
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         public async Task<string> RegisterAsync(RegisterRequestDto registerRequest)
