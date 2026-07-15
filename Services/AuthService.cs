@@ -73,7 +73,7 @@ namespace StudentManagement.API.Services
                 claims : claims,
                 expires : DateTime.UtcNow.AddMinutes(
                     Convert.ToDouble(
-                        _configuration["JwtSettings:ExpiryMinuts"])),
+                        _configuration["JwtSettings:ExpiryMinutes"])),
                 signingCredentials: creds
                  
             );
