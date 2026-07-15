@@ -19,7 +19,7 @@ namespace StudentManagement.API.Services
 
         public async Task<List<StudentResponseDto>> GetAllAsync()
         {
-            if(_cache.TryGetValue(StudentCacheKey, out List<StudentResponseDto>? cachedStudents))
+            if(!_cache.TryGetValue(StudentCacheKey, out List<StudentResponseDto>? cachedStudents))
             {
                 var students = await _isStudentRepository.GetAllAsync();
 
