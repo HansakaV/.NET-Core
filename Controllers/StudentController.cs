@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using StudentManagement.API.DTOs;
 using StudentManagement.API.DTOs.Students;
 using StudentManagement.API.Interfaces;
+using StudentManagement.API.util;
 
 namespace StudentManagement.API.Controllers;
 
@@ -19,7 +20,7 @@ public class StudentController : ControllerBase
     }
 
 [HttpGet]
-public async Task<ActionResult<IEnumerable<StudentResponseDto>>> GetStudents(
+public async Task<ActionResult<PagedResult<StudentResponseDto>>> GetStudents(
     [FromQuery] StudentQueryParameters queryParameters
 )
 {
