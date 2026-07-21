@@ -6,6 +6,8 @@ using AutoMapper;
 using StudentManagement.API.DTOs.Students;
 using Microsoft.Extensions.Primitives;
 using System.Threading;
+using StudentManagement.API.util;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace StudentManagement.API.Services
 {
@@ -24,15 +26,25 @@ namespace StudentManagement.API.Services
             _mapper = mapper;
         }
 
-        public async Task<List<StudentResponseDto>> GetAllAsync(StudentQueryParameters query)
+        public async Task<PagedResult<StudentResponseDto>> GetAllAsync(StudentQueryParameters query)
         {
             var cacheKey = $"students_page_{query.page}_size_{query.pageSize}";
 
-            if (!_cache.TryGetValue(cacheKey, out List<StudentResponseDto>? cachedStudents))
+            if (!_cache.TryGetValue(cacheKey, out PagedResult<StudentResponseDto>? cachedStudents))
             {
                 var students = await _isStudentRepository.GetAllAsync(query);
 
-                cachedStudents = _mapper.Map<List<StudentResponseDto>>(students);
+                var mappedItems = _mapper.Map<List<StudentResponseDto>>(students.Items);
+                cachedStudents = new PagedResult<StudentResponseDto>
+                {
+                    Page = students.Page,
+                    PageSize = students.PageSize,
+                    TotalRecords = students.TotalRecords,
+                    TotalPages = students.TotalPages,
+                    HasNextPage = students.HasNextPage,
+                    HasPreviousPage = students.HasPreviousPage,
+                    Items = mappedItems
+                };
 
                 var cacheOptions = new MemoryCacheEntryOptions()
                     .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
