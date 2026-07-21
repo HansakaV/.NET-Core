@@ -3,6 +3,7 @@ using StudentManagement.API.Models;
 using StudentManagement.API.DTOs;
 using Microsoft.Extensions.Caching.Memory;
 using AutoMapper;
+using StudentManagement.API.DTOs.Students;
 
 
 namespace StudentManagement.API.Services
@@ -11,7 +12,7 @@ namespace StudentManagement.API.Services
     {
         private readonly IStudentRepository _isStudentRepository;
         private readonly IMemoryCache _cache;
-        private const string StudentCacheKey = "students_cache_key";
+        private static readonly HashSet<string> _studentCacheKeys = new();
         private readonly IMapper _mapper;
         public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache, IMapper mapper)
         {
@@ -21,11 +22,12 @@ namespace StudentManagement.API.Services
 
         }
 
-        public async Task<List<StudentResponseDto>> GetAllAsync()
+        public async Task<List<StudentResponseDto>> GetAllAsync(StudentQueryParameters query)
         {
-            if(!_cache.TryGetValue(StudentCacheKey, out List<StudentResponseDto>? cachedStudents))
+            var cacheKey = $"students_page_{query.page}_size_{query.pageSize}";
+            if(!_cache.TryGetValue(cacheKey, out List<StudentResponseDto>? cachedStudents))
             {
-                var students = await _isStudentRepository.GetAllAsync();
+                var students = await _isStudentRepository.GetAllAsync(query);
 
                 cachedStudents =  _mapper.Map<List<StudentResponseDto>>(students);
 
@@ -33,7 +35,8 @@ namespace StudentManagement.API.Services
                     .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
                     .SetSlidingExpiration(TimeSpan.FromMinutes(2));
 
-                _cache.Set(StudentCacheKey, cachedStudents, cacheOptions);
+                _cache.Set(cacheKey, cachedStudents, cacheOptions);
+                _studentCacheKeys.Add(cacheKey);
 
             }
             return cachedStudents!;
@@ -57,10 +60,14 @@ namespace StudentManagement.API.Services
             var student = _mapper.Map<Student>(request);
 
             var createdStudent = await _isStudentRepository.CreateAsync(student);
-            _cache.Remove(StudentCacheKey); // Invalidate the cache after creating a new student
+
+            foreach(var key in _studentCacheKeys)
+            {
+                _cache.Remove(key);
+            }
+            _studentCacheKeys.Clear();
 
             return _mapper.Map<StudentResponseDto>(createdStudent);
-            
         }
 
         public async Task UpdateAsync(StudentUpdateRequestDto request)
@@ -73,7 +80,12 @@ namespace StudentManagement.API.Services
             var updatedStudent = _mapper.Map(request, student);
             
             await _isStudentRepository.UpdateAsync(updatedStudent);
-            _cache.Remove(StudentCacheKey); // Invalidate the cache after updating a student
+
+            foreach(var key in _studentCacheKeys)
+            {
+                _cache.Remove(key);
+            }
+            _studentCacheKeys.Clear();
         }
 
         public async Task DeleteAsync(int id)
@@ -83,7 +95,11 @@ namespace StudentManagement.API.Services
             {
                 throw new KeyNotFoundException($"Student with ID {id} not found.");
             }
-            _cache.Remove(StudentCacheKey); // Invalidate the cache after deleting a student
+            foreach(var key in _studentCacheKeys)
+            {
+                _cache.Remove(key);
+            }
+            _studentCacheKeys.Clear();
         }
         
     }
