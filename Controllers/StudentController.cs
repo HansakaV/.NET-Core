@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentManagement.API.DTOs;
+using StudentManagement.API.DTOs.Students;
 using StudentManagement.API.Interfaces;
 
 namespace StudentManagement.API.Controllers;
@@ -18,9 +19,11 @@ public class StudentController : ControllerBase
     }
 
 [HttpGet]
-public async Task<ActionResult<IEnumerable<StudentResponseDto>>> GetStudents()
+public async Task<ActionResult<IEnumerable<StudentResponseDto>>> GetStudents(
+    [FromQuery] StudentQueryParameters queryParameters
+)
 {
-    return await _studentService.GetAllAsync();
+    return await _studentService.GetAllAsync(queryParameters);
 }
 
 [HttpGet("{id}")]
