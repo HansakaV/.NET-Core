@@ -1,6 +1,7 @@
 using System.Xml;
 using Microsoft.EntityFrameworkCore;
 using StudentManagement.API.Data;
+using StudentManagement.API.DTOs.Students;
 using StudentManagement.API.Interfaces;
 using StudentManagement.API.Models;
 
@@ -14,9 +15,16 @@ namespace StudentManagement.API.Repositories
             _context = context;
         }
         
-        public async Task<List<Student>> GetAllAsync()
+        public async Task<List<Student>> GetAllAsync(StudentQueryParameters studentQuery)
         {
-            return await _context.Students.ToListAsync();
+            var skip = (studentQuery.page -1 ) * studentQuery.pageSize;
+            return await _context.Students
+                .AsNoTracking()
+                .OrderBy(student => student.Id)
+                .Skip(skip)
+                .Take(studentQuery.pageSize)
+                .ToListAsync();
+
         }
 
         public async Task<Student?> GetByIdAsync(int id)            
