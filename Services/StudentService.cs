@@ -77,14 +77,8 @@ namespace StudentManagement.API.Services
             {
                 throw new KeyNotFoundException($"Student with ID {request.Id} not found.");
             }
-            var updatedStudent = new Student
-            {
-                Id = request.Id,
-                Name = request.Name ?? student.Name,
-                Email = request.Email ?? student.Email,
-                Course = request.Course ?? student.Course,
-                Phone = request.Phone ?? student.Phone
-            };
+            var updatedStudent = _mapper.Map(request, student);
+            
             await _isStudentRepository.UpdateAsync(updatedStudent);
             _cache.Remove(StudentCacheKey); // Invalidate the cache after updating a student
         }

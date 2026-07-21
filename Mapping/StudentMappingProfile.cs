@@ -11,6 +11,8 @@ namespace StudentManagement.API.Mapping
         {
             CreateMap<StudentCreateRequestDto, Student>();
             CreateMap<Student, StudentResponseDto>();
+            CreateMap<StudentUpdateRequestDto, Student>()
+                .ForAllMembers(options => options.Condition((src, dest, srcMember) => srcMember != null)); //copy to entity only not null values
         }
     }
 }
