@@ -70,6 +70,7 @@ builder.Services.AddControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<StudentCreateRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<AppDBContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddAutoMapper(typeof(Program));
 
 //DI Registration
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
