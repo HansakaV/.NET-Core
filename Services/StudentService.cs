@@ -27,14 +27,7 @@ namespace StudentManagement.API.Services
             {
                 var students = await _isStudentRepository.GetAllAsync();
 
-                cachedStudents = students.Select(student => new StudentResponseDto
-                {
-                    Id = student.Id,
-                    Name = student.Name,
-                    Email = student.Email,
-                    Course = student.Course,
-                    Phone = student.Phone
-                }).ToList();
+                cachedStudents =  _mapper.Map<List<StudentResponseDto>>(students);
 
                 var cacheOptions = new MemoryCacheEntryOptions()
                     .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
