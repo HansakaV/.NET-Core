@@ -61,6 +61,9 @@ namespace StudentManagement.API.Services
 
         public async Task<StudentResponseDto> CreateAsync(StudentCreateRequestDto request)
         {
+            var exitedStudent = await _isStudentRepository.GetByEmailAsync(request.Email);
+            if(exitedStudent != null) throw new Exception("Email Already Exists !");
+
             var student = new Student
             {
                 Name = request.Name,

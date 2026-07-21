@@ -43,5 +43,10 @@ namespace StudentManagement.API.Repositories
             .Where(s => s.Id == id)
             .ExecuteDeleteAsync();
         }
+
+        public Task<Student?> GetByEmailAsync(string email)
+        {
+            return _context.Students.FirstOrDefaultAsync(s => s.Email == email);
+        }
     }
 }

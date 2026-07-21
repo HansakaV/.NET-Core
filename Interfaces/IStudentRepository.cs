@@ -6,6 +6,7 @@ namespace StudentManagement.API.Interfaces
     {
         Task<List<Student>> GetAllAsync();
         Task<Student?> GetByIdAsync(int id);
+        Task<Student?> GetByEmailAsync(string email);
         Task<Student> CreateAsync(Student student);
         Task UpdateAsync(Student student);
         Task<int> DeleteAsync(int id);
