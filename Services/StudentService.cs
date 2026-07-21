@@ -2,6 +2,7 @@ using StudentManagement.API.Interfaces;
 using StudentManagement.API.Models;
 using StudentManagement.API.DTOs;
 using Microsoft.Extensions.Caching.Memory;
+using AutoMapper;
 
 
 namespace StudentManagement.API.Services
@@ -11,10 +12,13 @@ namespace StudentManagement.API.Services
         private readonly IStudentRepository _isStudentRepository;
         private readonly IMemoryCache _cache;
         private const string StudentCacheKey = "students_cache_key";
-        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache)
+        private readonly IMapper _mapper;
+        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache, IMapper mapper)
         {
             _isStudentRepository = isStudentRepository;
             _cache = cache;
+            _mapper= mapper;
+
         }
 
         public async Task<List<StudentResponseDto>> GetAllAsync()
@@ -49,14 +53,7 @@ namespace StudentManagement.API.Services
                 return null;
             }
 
-            return new StudentResponseDto
-            {
-                Id = student.Id,
-                Name = student.Name,
-                Email = student.Email,
-                Course = student.Course,
-                Phone = student.Phone
-            };
+            return _mapper.Map<StudentResponseDto>(student);
         }
 
         public async Task<StudentResponseDto> CreateAsync(StudentCreateRequestDto request)
@@ -64,25 +61,13 @@ namespace StudentManagement.API.Services
             var exitedStudent = await _isStudentRepository.GetByEmailAsync(request.Email);
             if(exitedStudent != null) throw new Exception("Email Already Exists !");
 
-            var student = new Student
-            {
-                Name = request.Name,
-                Email = request.Email,
-                Course = request.Course,
-                Phone = request.Phone
-            };
+            var student = _mapper.Map<Student>(request);
 
             var createdStudent = await _isStudentRepository.CreateAsync(student);
             _cache.Remove(StudentCacheKey); // Invalidate the cache after creating a new student
 
-            return new StudentResponseDto
-            {
-                Id = createdStudent.Id,
-                Name = createdStudent.Name,
-                Email = createdStudent.Email,
-                Course = createdStudent.Course,
-                Phone = createdStudent.Phone
-            };
+            return _mapper.Map<StudentResponseDto>(createdStudent);
+            
         }
 
         public async Task UpdateAsync(StudentUpdateRequestDto request)
