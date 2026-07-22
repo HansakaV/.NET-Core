@@ -12,6 +12,6 @@ namespace StudentManagement.API.DTOs.Students
         public string? SearchTerm{get;set;}
         public string? Sortby{get;set;} = "id";
         public bool IsDecending{get;set;} = false;
-        public Courses? Course{get;set;}
+        public int? CourseId{get;set;}
     }
 }
