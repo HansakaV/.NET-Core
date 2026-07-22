@@ -28,7 +28,7 @@ namespace StudentManagement.API.Services
 
         public async Task<PagedResult<StudentResponseDto>> GetAllAsync(StudentQueryParameters query)
         {
-            var cacheKey = $"students_page_{query.page}_size_{query.pageSize}";
+            var cacheKey = $"students_page_{query.page}_size_{query.pageSize}_q{query.SearchTerm}_c{query.Course}_sort{query.Sortby}_desc{query.IsDecending}";
 
             if (!_cache.TryGetValue(cacheKey, out PagedResult<StudentResponseDto>? cachedStudents))
             {
