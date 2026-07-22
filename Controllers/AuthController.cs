@@ -18,7 +18,7 @@ public class LoginController : ControllerBase
 public async Task<IActionResult> Register(RegisterRequestDto registerRequest)
     {
         await _authService.RegisterAsync(registerRequest);
-        return StatusCode(StatusCodes.Status201Created);
+        return StatusCode(StatusCodes.Status201Created, new{message = "User Registred Successfully"});
     }
 
 [HttpPost("login")]
