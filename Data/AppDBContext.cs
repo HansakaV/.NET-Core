@@ -10,10 +10,6 @@ public class AppDBContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Student>()
-            .Property(s => s.Course)
-            .HasConversion<string>();
-        
-        modelBuilder.Entity<Student>()
             .HasOne(s => s.Course)
             .WithMany(c => c.Students)
             .HasForeignKey(s => s.CourseId)
