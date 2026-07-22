@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using StudentManagement.API.Enums;
 
 namespace StudentManagement.API.DTOs.Students
 {

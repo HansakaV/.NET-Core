@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using StudentManagement.API.Enums;
+using StudentManagement.API.Models;
+
 
 namespace StudentManagement.API.DTOs
 {
@@ -7,7 +8,7 @@ namespace StudentManagement.API.DTOs
     {
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
-        public Courses Course { get; set; }
+        public int CourseId { get; set; } 
         public string Phone { get; set; } = "";
         
     }

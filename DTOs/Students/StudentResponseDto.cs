@@ -1,4 +1,3 @@
-using StudentManagement.API.Enums;
 
 namespace StudentManagement.API.DTOs
 {
