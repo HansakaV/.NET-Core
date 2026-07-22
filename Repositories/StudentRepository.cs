@@ -2,7 +2,6 @@ using System.Xml;
 using Microsoft.EntityFrameworkCore;
 using StudentManagement.API.Data;
 using StudentManagement.API.DTOs.Students;
-using StudentManagement.API.Enums;
 using StudentManagement.API.Interfaces;
 using StudentManagement.API.Models;
 using StudentManagement.API.util;
