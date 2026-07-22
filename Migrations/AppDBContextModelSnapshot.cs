@@ -22,6 +22,30 @@ namespace StudentManagement.API.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("StudentManagement.API.Models.Course", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CourseCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CourseName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("DurationInMonths")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Course");
+                });
+
             modelBuilder.Entity("StudentManagement.API.Models.Student", b =>
                 {
                     b.Property<int>("Id")
@@ -30,9 +54,8 @@ namespace StudentManagement.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Course")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("CourseId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -48,7 +71,7 @@ namespace StudentManagement.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Course");
+                    b.HasIndex("CourseId");
 
                     b.HasIndex("Email")
                         .IsUnique();
@@ -97,6 +120,22 @@ namespace StudentManagement.API.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("StudentManagement.API.Models.Student", b =>
+                {
+                    b.HasOne("StudentManagement.API.Models.Course", "Course")
+                        .WithMany("Students")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("StudentManagement.API.Models.Course", b =>
+                {
+                    b.Navigation("Students");
                 });
 #pragma warning restore 612, 618
         }
