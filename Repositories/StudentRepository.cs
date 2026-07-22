@@ -2,6 +2,7 @@ using System.Xml;
 using Microsoft.EntityFrameworkCore;
 using StudentManagement.API.Data;
 using StudentManagement.API.DTOs.Students;
+using StudentManagement.API.Enums;
 using StudentManagement.API.Interfaces;
 using StudentManagement.API.Models;
 using StudentManagement.API.util;
@@ -18,12 +19,18 @@ namespace StudentManagement.API.Repositories
         
         public async Task<PagedResult<Student>> GetAllAsync(StudentQueryParameters studentQuery)
         {
-            var totalRecords = await _context.Students.CountAsync();
+            var query = _context.Students
+                .AsNoTracking()
+                .AsQueryable();
+            
+            query = ApplySearch(query, studentQuery.SearchTerm);
+            query = ApplyFilter(query, studentQuery.Course);
+            query = ApplySort(query, studentQuery.Sortby, studentQuery.IsDecending);
+            
+            var totalRecords = await query.CountAsync();
             var skip = (studentQuery.page -1 ) * studentQuery.pageSize;
 
-            var items = await _context.Students
-                .AsNoTracking()
-                .OrderBy(student => student.Id)
+            var items = await query
                 .Skip(skip)
                 .Take(studentQuery.pageSize)
                 .ToListAsync();
@@ -69,6 +76,36 @@ namespace StudentManagement.API.Repositories
         public Task<Student?> GetByEmailAsync(string email)
         {
             return _context.Students.FirstOrDefaultAsync(s => s.Email == email);
+        }
+
+        private static IQueryable<Student> ApplySearch(IQueryable<Student> query, string? searchTerm)
+        {
+            if(string.IsNullOrWhiteSpace(searchTerm)) return query;
+            var search = searchTerm.Trim().ToLower();
+            return query.Where(s =>
+                s.Name.ToLower().Contains(search) || s.Email.ToLower().Contains(search)
+            );
+        }
+        private static IQueryable<Student> ApplyFilter(IQueryable<Student>query, Courses? course)
+        {
+            if(!course.HasValue) return query;
+            return query.Where(s => s.Course == course.Value);
+        }
+
+        private static IQueryable<Student> ApplySort(IQueryable<Student>query, string? sortby, bool isDecending)
+        {
+            if(string.IsNullOrWhiteSpace(sortby))
+            {
+                return isDecending ? query.OrderByDescending(s => s.Id) : query.OrderBy(s => s.Id);
+            }
+            return sortby.ToLower() switch
+            {
+                "name" => isDecending ? query.OrderByDescending(s => s.Name) : query.OrderBy(s => s.Name),
+                "email" => isDecending ? query.OrderByDescending(s => s.Email) : query.OrderBy(s => s.Email),
+                "course" => isDecending ? query.OrderByDescending(s => s.Course) : query.OrderBy(s => s.Course),
+                "phone" => isDecending ? query.OrderByDescending(s => s.Phone) : query.OrderBy(s => s.Phone),
+            _       => isDecending ? query.OrderByDescending(s => s.Id) : query.OrderBy(s => s.Id)
+            };
         }
     }
 }
