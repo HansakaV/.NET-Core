@@ -7,7 +7,6 @@ using StudentManagement.API.DTOs.Students;
 using Microsoft.Extensions.Primitives;
 using System.Threading;
 using StudentManagement.API.util;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace StudentManagement.API.Services
 {
@@ -28,7 +27,7 @@ namespace StudentManagement.API.Services
 
         public async Task<PagedResult<StudentResponseDto>> GetAllAsync(StudentQueryParameters query)
         {
-            var cacheKey = $"students_page_{query.page}_size_{query.pageSize}_q{query.SearchTerm}_c{query.Course}_sort{query.Sortby}_desc{query.IsDecending}";
+            var cacheKey = $"students_page_{query.page}_size_{query.pageSize}_q{query.SearchTerm}_c{query.CourseId}_sort{query.Sortby}_desc{query.IsDecending}";
 
             if (!_cache.TryGetValue(cacheKey, out PagedResult<StudentResponseDto>? cachedStudents))
             {
