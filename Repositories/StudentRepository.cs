@@ -34,6 +34,7 @@ namespace StudentManagement.API.Repositories
                 Page = studentQuery.page,
                 PageSize = studentQuery.pageSize,
                 TotalRecords = totalRecords,
+                TotalPages = totalPages,
                 HasNextPage = studentQuery.page < totalPages,
                 HasPreviousPage = studentQuery.page > 1,
                 Items = items
