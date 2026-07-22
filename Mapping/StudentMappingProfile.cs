@@ -10,7 +10,7 @@ namespace StudentManagement.API.Mapping
         public StudentMappingProfile()
         {
             CreateMap<StudentCreateRequestDto, Student>();
-            CreateMap<Student, StudentResponseDto>();
+            
             CreateMap<Student, StudentResponseDto>()
                 .ForMember(dest => dest.Course, opt =>opt.MapFrom(src => src.Course != null? src.Course.CourseName : string.Empty));
         
