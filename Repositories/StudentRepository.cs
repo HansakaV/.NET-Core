@@ -1,6 +1,7 @@
 using System.Xml;
 using Microsoft.EntityFrameworkCore;
 using StudentManagement.API.Data;
+using StudentManagement.API.DTOs;
 using StudentManagement.API.DTOs.Students;
 using StudentManagement.API.Interfaces;
 using StudentManagement.API.Models;
@@ -16,27 +17,37 @@ namespace StudentManagement.API.Repositories
             _context = context;
         }
         
-        public async Task<PagedResult<Student>> GetAllAsync(StudentQueryParameters studentQuery)
+    public async Task<PagedResult<StudentResponseDto>> GetAllAsync(StudentQueryParameters studentQuery)
         {
             var query = _context.Students
                 .AsNoTracking()
-                .Include(c => c.Course)
                 .AsQueryable();
-            
+    
             query = ApplySearch(query, studentQuery.SearchTerm);
             query = ApplyFilter(query, studentQuery.CourseId);
             query = ApplySort(query, studentQuery.Sortby, studentQuery.IsDecending);
-            
-            var totalRecords = await query.CountAsync();
-            var skip = (studentQuery.page -1 ) * studentQuery.pageSize;
 
+            var totalRecords = await query.CountAsync();
+            var skip = (studentQuery.page - 1) * studentQuery.pageSize;
+
+    
             var items = await query
                 .Skip(skip)
                 .Take(studentQuery.pageSize)
-                .ToListAsync();
-            
+                .Select(s => new StudentResponseDto
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Email = s.Email,
+                        Phone = s.Phone,
+                        CourseId = s.CourseId,
+                        Course = s.Course != null ? s.Course.CourseName : string.Empty // Relational Data Projection
+                    })
+                    .ToListAsync();
+
             var totalPages = (int)Math.Ceiling((double)totalRecords / studentQuery.pageSize);
-            return new PagedResult<Student>
+
+            return new PagedResult<StudentResponseDto>
             {
                 Page = studentQuery.page,
                 PageSize = studentQuery.pageSize,
@@ -47,6 +58,7 @@ namespace StudentManagement.API.Repositories
                 Items = items
             };
         }
+
 
         public async Task<Student?> GetByIdAsync(int id)            
         {
