@@ -20,14 +20,18 @@ public class StudentController : ControllerBase
     }
 
 [HttpGet]
+[ProducesResponseType(StatusCodes.Status200OK)]
 public async Task<ActionResult<PagedResult<StudentResponseDto>>> GetStudents(
     [FromQuery] StudentQueryParameters queryParameters
 )
 {
-    return await _studentService.GetAllAsync(queryParameters);
+    var result=  await _studentService.GetAllAsync(queryParameters);
+    return Ok(result);
 }
 
 [HttpGet("{id}")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
 public async Task<ActionResult<StudentResponseDto>> GetStudentById(int id)
     {
         var student = await _studentService.GetByIdAsync(id);
@@ -39,6 +43,8 @@ public async Task<ActionResult<StudentResponseDto>> GetStudentById(int id)
     }
 
 [HttpPost]
+[ProducesResponseType(StatusCodes.Status201Created)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
 public async Task<ActionResult<StudentResponseDto>> CreateStudent(StudentCreateRequestDto request)
     {
         var createdStudent = await _studentService.CreateAsync(request);
@@ -46,6 +52,9 @@ public async Task<ActionResult<StudentResponseDto>> CreateStudent(StudentCreateR
     }
 
 [HttpPut("{id}")]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
 public async Task<IActionResult> UpdateStudent(int id, StudentUpdateRequestDto request)
     {
         if (id != request.Id)
@@ -57,6 +66,8 @@ public async Task<IActionResult> UpdateStudent(int id, StudentUpdateRequestDto r
     }
 
 [HttpDelete("{id}")]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
 public async Task<IActionResult> DeleteStudent(int id)
     {
         await _studentService.DeleteAsync(id);
