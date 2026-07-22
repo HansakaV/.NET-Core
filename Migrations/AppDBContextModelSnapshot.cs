@@ -48,6 +48,13 @@ namespace StudentManagement.API.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Course");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Name");
+
                     b.ToTable("Students");
                 });
 

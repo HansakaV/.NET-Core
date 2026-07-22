@@ -12,6 +12,15 @@ public class AppDBContext : DbContext
         modelBuilder.Entity<Student>()
             .Property(s => s.Course)
             .HasConversion<string>();
+        
+        modelBuilder.Entity<Student>(property =>
+        {
+            property.HasIndex(s => s.Email)
+                .IsUnique();
+            property.HasIndex(s => s.Name);
+            property.HasIndex(s => s.Course);
+            
+        });
     }
     public DbSet<Student> Students { get; set; }    
     public DbSet<User> Users {get; set;}
