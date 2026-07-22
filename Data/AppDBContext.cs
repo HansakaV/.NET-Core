@@ -19,7 +19,12 @@ public class AppDBContext : DbContext
                 .IsUnique();
             property.HasIndex(s => s.Name);
             property.HasIndex(s => s.Course);
-            
+
+        });
+        modelBuilder.Entity<User>(property =>
+        {
+            property.HasIndex(u => u.Email)
+                .IsUnique();
         });
     }
     public DbSet<Student> Students { get; set; }    
