@@ -21,10 +21,11 @@ namespace StudentManagement.API.Repositories
         {
             var query = _context.Students
                 .AsNoTracking()
+                .Include(c => c.Course)
                 .AsQueryable();
             
             query = ApplySearch(query, studentQuery.SearchTerm);
-            query = ApplyFilter(query, studentQuery.Course);
+            query = ApplyFilter(query, studentQuery.CourseId);
             query = ApplySort(query, studentQuery.Sortby, studentQuery.IsDecending);
             
             var totalRecords = await query.CountAsync();
@@ -50,7 +51,9 @@ namespace StudentManagement.API.Repositories
 
         public async Task<Student?> GetByIdAsync(int id)            
         {
-            return await _context.Students.FirstOrDefaultAsync(x=> x.Id == id );
+            return await _context.Students
+                .Include(s => s.Course)
+                .FirstOrDefaultAsync(x=> x.Id == id );
         }
 
         public async Task<Student> CreateAsync(Student student)
@@ -83,13 +86,15 @@ namespace StudentManagement.API.Repositories
             if(string.IsNullOrWhiteSpace(searchTerm)) return query;
             var search = searchTerm.Trim().ToLower();
             return query.Where(s =>
-                s.Name.ToLower().Contains(search) || s.Email.ToLower().Contains(search)
+                s.Name.ToLower().Contains(search) || 
+                s.Email.ToLower().Contains(search) || 
+                s.Course.CourseName.ToLower().Contains(search)
             );
         }
-        private static IQueryable<Student> ApplyFilter(IQueryable<Student>query, Courses? course)
+        private static IQueryable<Student> ApplyFilter(IQueryable<Student>query, int? courseId)
         {
-            if(!course.HasValue) return query;
-            return query.Where(s => s.Course == course.Value);
+            if(!courseId.HasValue) return query;
+            return query.Where(s => s.CourseId == courseId.Value);
         }
 
         private static IQueryable<Student> ApplySort(IQueryable<Student>query, string? sortby, bool isDecending)
@@ -102,7 +107,7 @@ namespace StudentManagement.API.Repositories
             {
                 "name" => isDecending ? query.OrderByDescending(s => s.Name) : query.OrderBy(s => s.Name),
                 "email" => isDecending ? query.OrderByDescending(s => s.Email) : query.OrderBy(s => s.Email),
-                "course" => isDecending ? query.OrderByDescending(s => s.Course) : query.OrderBy(s => s.Course),
+                "course" => isDecending ? query.OrderByDescending(s => s.Course.CourseName) : query.OrderBy(s => s.Course.CourseName),
                 "phone" => isDecending ? query.OrderByDescending(s => s.Phone) : query.OrderBy(s => s.Phone),
             _       => isDecending ? query.OrderByDescending(s => s.Id) : query.OrderBy(s => s.Id)
             };
