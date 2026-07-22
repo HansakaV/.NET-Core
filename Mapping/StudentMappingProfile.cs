@@ -11,19 +11,12 @@ namespace StudentManagement.API.Mapping
         {
             CreateMap<StudentCreateRequestDto, Student>();
             CreateMap<Student, StudentResponseDto>();
-
+            CreateMap<Student, StudentResponseDto>()
+                .ForMember(dest => dest.Course, opt =>opt.MapFrom(src => src.Course != null? src.Course.CourseName : string.Empty));
+        
             //custom mapping for update
             CreateMap<StudentUpdateRequestDto, Student>()
-                .ForAllMembers(options => options.Condition((src, dest, srcMember) => srcMember != null)); //copy to entity only not null values
-            
-            //custom mapping 
-            // CreateMap<Student, StudentResponseDto>()
-            //     .ForMember(
-            //         dest => dest.FullName,
-            //         opt => opt.MapFrom(
-            //             src => src.FirstName + "" + src.LastName
-            //         )
-            //     );
+                .ForAllMembers(options => options.Condition((src, dest, srcMember) => srcMember != null)); //copy to entity only not null values'
 
         }
     }
