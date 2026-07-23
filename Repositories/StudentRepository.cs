@@ -82,9 +82,14 @@ namespace StudentManagement.API.Repositories
 
         public async Task<int> DeleteAsync(int id)
         {
-            return await _context.Students
-            .Where(s => s.Id == id)
-            .ExecuteDeleteAsync();
+            var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == id);
+            if(student ==null) return 0;
+
+            student.IsDeleted = true;
+            student.DeletedAt = DateTime.UtcNow;
+
+            _context.Students.Update(student);
+            return await _context.SaveChangesAsync();
         }
 
         public Task<Student?> GetByEmailAsync(string email)
