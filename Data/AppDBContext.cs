@@ -33,4 +33,29 @@ public class AppDBContext : DbContext
     }
     public DbSet<Student> Students { get; set; }    
     public DbSet<User> Users {get; set;}
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker.Entries<BaseEntity>();
+        foreach(var entry in entries)
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    entry.Entity.IsDeleted = false;
+                    break;
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+
+                    if(entry.Entity.IsDeleted && entry.Entity.DeletedAt == null)
+                    {
+                        entry.Entity.DeletedAt = DateTime.UtcNow;
+                    }
+                    break;
+            }
+        }
+        return base.SaveChangesAsync(cancellationToken);
+    }
 }
