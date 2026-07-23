@@ -10,6 +10,9 @@ public class AppDBContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Student>()
+            .HasQueryFilter(s => !s.IsDeleted);
+            
+        modelBuilder.Entity<Student>()
             .HasOne(s => s.Course)
             .WithMany(c => c.Students)
             .HasForeignKey(s => s.CourseId)
