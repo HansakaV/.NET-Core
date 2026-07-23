@@ -1,3 +1,5 @@
+using Org.BouncyCastle.Pqc.Crypto.Falcon;
+
 namespace StudentManagement.API.Models;
     public class Student
 {
@@ -7,5 +9,7 @@ namespace StudentManagement.API.Models;
     public string Phone{get; set;} = string.Empty;
     public int CourseId {get;set;}
     public Course Course{get;set;} =null!;
+    public bool IsDeleted {get;set;} =false;
+    public DateTime? DeletedAt {get;set;}
 
 }
