@@ -43,7 +43,7 @@ namespace StudentManagement.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Course");
+                    b.ToTable("Courses");
                 });
 
             modelBuilder.Entity("StudentManagement.API.Models.RefreshToken", b =>
@@ -54,11 +54,20 @@ namespace StudentManagement.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("CreatedByIp")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("ReplacedByTokenHash")
                         .HasColumnType("text");
@@ -73,6 +82,9 @@ namespace StudentManagement.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
@@ -83,7 +95,7 @@ namespace StudentManagement.API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshToken");
+                    b.ToTable("refreshTokens");
                 });
 
             modelBuilder.Entity("StudentManagement.API.Models.Student", b =>
@@ -177,7 +189,7 @@ namespace StudentManagement.API.Migrations
             modelBuilder.Entity("StudentManagement.API.Models.RefreshToken", b =>
                 {
                     b.HasOne("StudentManagement.API.Models.User", "user")
-                        .WithMany()
+                        .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -199,6 +211,11 @@ namespace StudentManagement.API.Migrations
             modelBuilder.Entity("StudentManagement.API.Models.Course", b =>
                 {
                     b.Navigation("Students");
+                });
+
+            modelBuilder.Entity("StudentManagement.API.Models.User", b =>
+                {
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }
