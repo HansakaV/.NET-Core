@@ -4,7 +4,7 @@ namespace StudentManagement.API.Interfaces
 {
     public interface IAuthService
     {
-        Task<LoginResponseDto> LoginAsync(LoginRequestDto loginRequest);
+        Task<AuthenticationResultDto> LoginAsync(LoginRequestDto loginRequest, string? ipaddres);
         Task<string> RegisterAsync(RegisterRequestDto registerRequest);
         Task<bool> ForgotPasswordAsync(ForgotPasswordRequestDto forgotPasswordRequest);
         Task<bool> SendVerifactionCodeAsync(SendVerificationCodeDto sendVerificationCode);
