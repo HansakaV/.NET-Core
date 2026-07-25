@@ -17,6 +17,15 @@ public class AppDBContext : DbContext
             .WithMany(c => c.Students)
             .HasForeignKey(s => s.CourseId)
             .OnDelete(DeleteBehavior.Restrict);
+        
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasIndex(r => r.TokenHash).IsUnique();
+            entity.HasOne(r => r.user)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         
         modelBuilder.Entity<Student>(property =>
