@@ -26,7 +26,6 @@ public class AppDBContext : DbContext
                 .HasForeignKey(r => r.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-
         
         modelBuilder.Entity<Student>(property =>
         {
@@ -42,6 +41,8 @@ public class AppDBContext : DbContext
     }
     public DbSet<Student> Students { get; set; }    
     public DbSet<User> Users {get; set;}
+    public DbSet<Course> Courses {get;set;}
+    public DbSet<RefreshToken> refreshTokens {get;set;}
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
