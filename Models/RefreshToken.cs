@@ -1,6 +1,6 @@
 namespace StudentManagement.API.Models
 {
-    public class RefreshToken
+    public class RefreshToken : BaseEntity
     {
         public int Id {get;set;}
         public string TokenHash {get;set;} = string.Empty;
