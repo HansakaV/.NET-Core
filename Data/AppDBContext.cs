@@ -9,24 +9,28 @@ public class AppDBContext : DbContext
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        //Global filters
         modelBuilder.Entity<Student>()
             .HasQueryFilter(s => !s.IsDeleted);
-            
+
+        //Relationships
         modelBuilder.Entity<Student>()
             .HasOne(s => s.Course)
             .WithMany(c => c.Students)
             .HasForeignKey(s => s.CourseId)
             .OnDelete(DeleteBehavior.Restrict);
         
-        modelBuilder.Entity<RefreshToken>(entity =>
-        {
-            entity.HasIndex(r => r.TokenHash).IsUnique();
-            entity.HasOne(r => r.user)
-                .WithMany()
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+        modelBuilder.Entity<RefreshToken>()
+            .HasOne(token => token.user)
+            .WithMany(user => user.RefreshTokens)
+            .HasForeignKey(token => token.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
         
+        //Indexing
+        modelBuilder.Entity<RefreshToken>()
+            .HasIndex(token => token.TokenHash)
+            .IsUnique();
+                
         modelBuilder.Entity<Student>(property =>
         {
             property.HasIndex(s => s.Email).IsUnique();
@@ -44,6 +48,7 @@ public class AppDBContext : DbContext
     public DbSet<Course> Courses {get;set;}
     public DbSet<RefreshToken> refreshTokens {get;set;}
 
+    //BaseModel Override
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var entries = ChangeTracker.Entries<BaseEntity>();
