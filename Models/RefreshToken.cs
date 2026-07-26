@@ -12,7 +12,7 @@ namespace StudentManagement.API.Models
         public string? RevoekdByIp {get;set;}
         //foreign Refernce
         public int UserId {get;set;}
-        public User user {get;set;} = null!;
+        public User User {get;set;} = null!;
         //computed Properties
         public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
         public bool ISRevoked => RevokedAt is not null;
