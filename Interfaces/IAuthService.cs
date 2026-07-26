@@ -9,5 +9,6 @@ namespace StudentManagement.API.Interfaces
         Task<bool> ForgotPasswordAsync(ForgotPasswordRequestDto forgotPasswordRequest);
         Task<bool> SendVerifactionCodeAsync(SendVerificationCodeDto sendVerificationCode);
         Task<AuthenticationResultDto> RefreshAsync(string rawRefreshToken , string? ipaddres);
+        Task LogoutAsync(string rawRefreshToken, string? ipaddres);
     }
 }

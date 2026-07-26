@@ -95,7 +95,7 @@ namespace StudentManagement.API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("refreshTokens");
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("StudentManagement.API.Models.Student", b =>
@@ -188,13 +188,13 @@ namespace StudentManagement.API.Migrations
 
             modelBuilder.Entity("StudentManagement.API.Models.RefreshToken", b =>
                 {
-                    b.HasOne("StudentManagement.API.Models.User", "user")
+                    b.HasOne("StudentManagement.API.Models.User", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("user");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StudentManagement.API.Models.Student", b =>
