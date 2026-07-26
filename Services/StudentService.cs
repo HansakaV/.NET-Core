@@ -7,6 +7,8 @@ using StudentManagement.API.DTOs.Students;
 using Microsoft.Extensions.Primitives;
 using System.Threading;
 using StudentManagement.API.util;
+using StudentManagement.API.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace StudentManagement.API.Services
 {
@@ -15,14 +17,16 @@ namespace StudentManagement.API.Services
         private readonly IStudentRepository _isStudentRepository;
         private readonly IMemoryCache _cache;
         private readonly IMapper _mapper;
+        private readonly AppDBContext _context;
 
         private static CancellationTokenSource _resetCacheToken = new();
 
-        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache, IMapper mapper)
+        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache, IMapper mapper, AppDBContext context)
         {
             _isStudentRepository = isStudentRepository;
             _cache = cache;
             _mapper = mapper;
+            _context = context;
         }
 
         public async Task<PagedResult<StudentResponseDto>> GetAllAsync(StudentQueryParameters query)
@@ -84,11 +88,25 @@ namespace StudentManagement.API.Services
             {
                 throw new KeyNotFoundException($"Student with ID {request.Id} not found.");
             }
-
+            _context.Entry(student)
+                .Property(student => student.Version)
+                .OriginalValue = request.Version;
+            
             var updatedStudent = _mapper.Map(request, student);
-            await _isStudentRepository.UpdateAsync(updatedStudent);
+            updatedStudent.Version = request.Version + 1;
 
-            ClearAllStudentCaches();
+            try
+            {
+                await _isStudentRepository.UpdateAsync(updatedStudent);
+                ClearAllStudentCaches();
+            }
+            catch(DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(
+                    "The record you attempted to edit was modified by another user after you got the original value. Please refresh the page and try again.");
+            }
+
+            
         }
 
         public async Task DeleteAsync(int id)
