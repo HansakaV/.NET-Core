@@ -26,6 +26,11 @@ public class AppDBContext : DbContext
             .HasForeignKey(token => token.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         
+        //Concurrency
+        modelBuilder.Entity<Student>()
+            .Property(student => student.Version)
+            .IsConcurrencyToken();
+        
         //Indexing
         modelBuilder.Entity<RefreshToken>()
             .HasIndex(token => token.TokenHash)
