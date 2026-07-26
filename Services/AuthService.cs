@@ -1,10 +1,8 @@
+using System.Diagnostics;
+using Microsoft.AspNetCore.Routing.Patterns;
 using StudentManagement.API.DTOs.Authentication;
 using StudentManagement.API.Interfaces;
 using StudentManagement.API.Models;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace StudentManagement.API.Services
 {
@@ -13,11 +11,15 @@ namespace StudentManagement.API.Services
         private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
-        public AuthService(IAuthRepository authRepository , IConfiguration configuration, IEmailService emailService)
+        private readonly ITokenService _tokenService;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
+        public AuthService(IAuthRepository authRepository , IConfiguration configuration, IEmailService emailService, ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository)
         {
             _authRepository = authRepository;
             _configuration = configuration;
             _emailService = emailService;
+            _tokenService = tokenService;
+            _refreshTokenRepository = refreshTokenRepository;
         }
         public async Task<bool> ForgotPasswordAsync(ForgotPasswordRequestDto forgotPasswordRequest)
         {
@@ -36,13 +38,13 @@ namespace StudentManagement.API.Services
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(forgotPasswordRequest.NewPassword);
 
             user.VerificationCode = null;
-            user.VerificationCode = null;
+            user.VerificationCodeExpiry = null;
 
             await _authRepository.UpdateUserAsync(user);
             return true;
         }
 
-        public async Task<LoginResponseDto> LoginAsync(LoginRequestDto loginRequest)
+        public async Task<AuthenticationResultDto> LoginAsync(LoginRequestDto loginRequest,string? ipaddress)
         {
             var user = await _authRepository.GetByEmailAsync(loginRequest.Email);
 
@@ -51,33 +53,97 @@ namespace StudentManagement.API.Services
                 throw new UnauthorizedAccessException("Your Email Or Password Incorrect!");
             }
 
-            return new LoginResponseDto{Token = CreateJwtToken(user)};
+            var accessToken = _tokenService.GenerateAccessToken(user);
+            var rawRefreshToken = _tokenService.GenerateRefreshToken();
+            var accesTokenExpiration = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["JWTSettings:AccessTokenExpiryMinutes"]!));
+            var refreshTokenExpiration = DateTime.UtcNow.AddDays(Convert.ToInt16(_configuration["JWTSettings:RefreshTokenExpiryDays"]!));
+
+            var refreshToken = new RefreshToken()
+            {
+                TokenHash = _tokenService.HashToken(rawRefreshToken),
+                UserId = user.Id,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = refreshTokenExpiration,
+                CreatedByIp = ipaddress 
+            };
+            await _refreshTokenRepository.AddAsync(refreshToken);
+            await _refreshTokenRepository.SaveChangesAsync();
+
+            return new AuthenticationResultDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = rawRefreshToken,
+                AccessTokenExpiresAt = accesTokenExpiration,
+                User = new UserResponseDto
+                {
+                    Id = user.Id,
+                    Name = user.Name,
+                    Email = user.Email,
+                    Role = user.Role
+                }
+            };
         }
 
-        private string CreateJwtToken(User user)
+        public async Task LogoutAsync(string rawRefreshToken, string? ipaddres)
         {
-            var claims = new List<Claim>
+            if(rawRefreshToken is null) throw new Exception ("refreshtoken Empty");
+
+            var tokenHash = _tokenService.HashToken(rawRefreshToken);
+            var storedToken = await _refreshTokenRepository.GetHashWithUserAsync(tokenHash);
+            if(storedToken is null || storedToken.ISRevoked)
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role)
+                return;
+            }
+            storedToken.RevokedAt = DateTime.UtcNow;
+            storedToken.RevoekdByIp = ipaddres;
+            await _refreshTokenRepository.SaveChangesAsync();
+
+        }
+
+        public async Task<AuthenticationResultDto> RefreshAsync(string rawRefreshToken, string? ipaddres)
+        {
+            if(rawRefreshToken is null) throw new KeyNotFoundException ("refresh Token Empty");
+
+            var tokenHash = _tokenService.HashToken(rawRefreshToken);
+            var storedToken = await _refreshTokenRepository.GetHashWithUserAsync(tokenHash);
+
+            if(storedToken is null) throw new UnauthorizedAccessException ("Invalid Refresh Token");
+            if(!storedToken.IsActive) throw new UnauthorizedAccessException ("Refresh Token Is Expired or Revoked");
+
+            var newRawRefreshToken = _tokenService.GenerateRefreshToken();
+            var newTokenHash = _tokenService.HashToken(newRawRefreshToken);
+
+            storedToken.RevokedAt = DateTime.UtcNow;
+            storedToken.RevoekdByIp = ipaddres;
+            storedToken.ReplacedByTokenHash = newTokenHash;
+            var refreshTokenExpiration = DateTime.UtcNow.AddDays(Convert.ToInt16(_configuration["JWTSettings:RefreshTokenExpiryDays"]!));
+            var accesTokenExpiration = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["JWTSettings:AccessTokenExpiryMinutes"]!));
+
+            var newRefreshToken = new RefreshToken
+            {
+                TokenHash = newTokenHash,
+                UserId = storedToken.UserId,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = refreshTokenExpiration,
+                CreatedByIp = ipaddres
             };
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                _configuration["JwtSettings:TokenSecret"]!));
-            
-            var creds = new SigningCredentials(key , SecurityAlgorithms.HmacSha512Signature);
-            var token = new JwtSecurityToken(
-                issuer:_configuration["JwtSettings:Issuer"],
-                audience:_configuration["JwtSettings:Audience"],
-                claims : claims,
-                expires : DateTime.UtcNow.AddMinutes(
-                    Convert.ToDouble(
-                        _configuration["JwtSettings:ExpiryMinutes"])),
-                signingCredentials: creds
-                 
-            );
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            await _refreshTokenRepository.AddAsync(newRefreshToken);
+            await _refreshTokenRepository.SaveChangesAsync();
+
+            var accessToken = _tokenService.GenerateAccessToken(storedToken.User);
+
+            return new AuthenticationResultDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = newRawRefreshToken,
+                AccessTokenExpiresAt = accesTokenExpiration,
+                User = new UserResponseDto
+                {
+                    Id = storedToken.User.Id,
+                    Email = storedToken.User.Email,
+                    Role = storedToken.User.Role
+                }
+            };
         }
 
         public async Task<string> RegisterAsync(RegisterRequestDto registerRequest)
