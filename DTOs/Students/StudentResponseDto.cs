@@ -9,5 +9,6 @@ namespace StudentManagement.API.DTOs
         public string Course {get;set;} = string.Empty;
         public int CourseId {get;set;}
         public string Phone { get; set; } = string.Empty;
+        public int Version {get;set;}
     }
 }
