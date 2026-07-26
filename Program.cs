@@ -13,6 +13,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Reflection.Metadata;
 using Microsoft.OpenApi.Models;
+using Microsoft.Net.Http.Headers;
+using StudentManagement.API.util;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +73,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<StudentCreateRequestValidat
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<AppDBContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddHttpContextAccessor();
 
 //DI Registration
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
@@ -78,6 +81,9 @@ builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+
 
 //JWT Authentication Cofiguration
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(Options =>
