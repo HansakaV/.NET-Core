@@ -21,7 +21,7 @@ public class AppDBContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
         
         modelBuilder.Entity<RefreshToken>()
-            .HasOne(token => token.user)
+            .HasOne(token => token.User)
             .WithMany(user => user.RefreshTokens)
             .HasForeignKey(token => token.UserId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -46,7 +46,7 @@ public class AppDBContext : DbContext
     public DbSet<Student> Students { get; set; }    
     public DbSet<User> Users {get; set;}
     public DbSet<Course> Courses {get;set;}
-    public DbSet<RefreshToken> refreshTokens {get;set;}
+    public DbSet<RefreshToken> RefreshTokens {get;set;}
 
     //BaseModel Override
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
