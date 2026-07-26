@@ -9,6 +9,6 @@ namespace StudentManagement.API.DTOs
         public int? CourseId { get; set; } = null;
         public string? Email { get; set; } = null;
         public string? Phone { get; set; } = null;
-        public int Verision {get;set;}
+        public int Version {get;set;}
     }
 }
