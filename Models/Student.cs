@@ -9,5 +9,6 @@ namespace StudentManagement.API.Models;
     public string Phone{get; set;} = string.Empty;
     public int CourseId {get;set;}
     public Course Course{get;set;} =null!;
+    public int Version {get;set;} = 1;
 
 }
