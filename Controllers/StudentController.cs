@@ -35,10 +35,6 @@ public async Task<ActionResult<PagedResult<StudentResponseDto>>> GetStudents(
 public async Task<ActionResult<StudentResponseDto>> GetStudentById(int id)
     {
         var student = await _studentService.GetByIdAsync(id);
-        if (student == null)
-        {
-            return NotFound();
-        }
         return Ok(student);
     }
 
