@@ -9,6 +9,7 @@ using System.Threading;
 using StudentManagement.API.util;
 using StudentManagement.API.Data;
 using Microsoft.EntityFrameworkCore;
+using StudentManagement.API.Middlewares.Exceptions;
 
 namespace StudentManagement.API.Services
 {
@@ -102,11 +103,9 @@ namespace StudentManagement.API.Services
             }
             catch(DbUpdateConcurrencyException)
             {
-                throw new InvalidOperationException(
+                throw new StudentConcurrencyException(
                     "The record you attempted to edit was modified by another user after you got the original value. Please refresh the page and try again.");
             }
-
-            
         }
 
         public async Task DeleteAsync(int id)
