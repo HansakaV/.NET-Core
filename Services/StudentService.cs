@@ -64,7 +64,7 @@ namespace StudentManagement.API.Services
         public async Task<StudentResponseDto?> GetByIdAsync(int id)
         {
             var student = await _isStudentRepository.GetByIdAsync(id);
-            if (student == null) return null;
+            if (student == null) throw new StudentNotFoundException(id);
 
             return _mapper.Map<StudentResponseDto>(student);
         }
@@ -72,7 +72,7 @@ namespace StudentManagement.API.Services
         public async Task<StudentResponseDto> CreateAsync(StudentCreateRequestDto request)
         {
             var exitedStudent = await _isStudentRepository.GetByEmailAsync(request.Email);
-            if (exitedStudent != null) throw new Exception("Email Already Exists !");
+            if (exitedStudent != null) throw new ArgumentException("Email Already Exists !");
 
             var student = _mapper.Map<Student>(request);
             var createdStudent = await _isStudentRepository.CreateAsync(student);
@@ -87,7 +87,7 @@ namespace StudentManagement.API.Services
             var student = await _isStudentRepository.GetByIdAsync(request.Id);
             if (student == null)
             {
-                throw new KeyNotFoundException($"Student with ID {request.Id} not found.");
+                throw new StudentNotFoundException(request.Id);
             }
             _context.Entry(student)
                 .Property(student => student.Version)
@@ -113,7 +113,7 @@ namespace StudentManagement.API.Services
             var rowsEffected = await _isStudentRepository.DeleteAsync(id);
             if (rowsEffected == 0)
             {
-                throw new KeyNotFoundException($"Student with ID {id} not found.");
+                throw new StudentNotFoundException(id);
             }
 
             ClearAllStudentCaches();
