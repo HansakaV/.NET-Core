@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using StudentManagement.API.Interfaces;
 using StudentManagement.API.Repositories;
 using StudentManagement.API.Services;
-using StudentManagement.API.Middlewares;
 using Serilog;
 using FluentValidation;
 using StudentManagement.API.Validators.Students;
@@ -11,10 +10,8 @@ using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.Reflection.Metadata;
 using Microsoft.OpenApi.Models;
-using Microsoft.Net.Http.Headers;
-using StudentManagement.API.util;
+using StudentManagement.API.ExceptionHandlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
