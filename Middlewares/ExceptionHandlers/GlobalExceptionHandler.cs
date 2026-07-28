@@ -9,6 +9,7 @@ public sealed class GlobalExceptionHandler
     : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
+    private const string CorrelationHeader = "X-Correlation-ID";
 
     public GlobalExceptionHandler(
         ILogger<GlobalExceptionHandler> logger)
@@ -21,6 +22,7 @@ public sealed class GlobalExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
+        var corellectionId = httpContext.Items[CorrelationHeader]?.ToString();
         var problemDetails = CreateProblemDetails(
             httpContext,
             exception);
@@ -39,6 +41,10 @@ public sealed class GlobalExceptionHandler
                 "Request failed with status {StatusCode}. TraceId: {TraceId}",
                 problemDetails.Status,
                 httpContext.TraceIdentifier);
+        }
+        if (!string.IsNullOrWhiteSpace(corellectionId))
+        {
+            problemDetails.Extensions["correlationId"] = corellectionId;
         }
 
         httpContext.Response.StatusCode =
