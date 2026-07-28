@@ -13,6 +13,7 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using StudentManagement.API.ExceptionHandlers;
 using StudentManagement.API.Middlewares;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -101,6 +102,50 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ClockSkew = TimeSpan.Zero
     };
 });
+
+//Api Behavior options Validation
+builder.Services
+        .AddControllers()
+        .ConfigureApiBehaviorOptions(options =>
+        {
+            options.InvalidModelStateResponseFactory = 
+            context =>
+            {
+                var errors = context.ModelState
+                    .Where(entry =>
+                        entry.Value != null && entry.Value?.Errors.Count > 0 )
+                    .ToDictionary(
+                        entry => entry.Key,
+                        entry => entry.Value!.Errors    
+                            .Select(error =>
+                                string.IsNullOrWhiteSpace(error.ErrorMessage)
+                                    ? "The Enterd value Is Invalid"
+                                    : error.ErrorMessage)
+                            .ToArray());
+                
+                var problemDetails = new ValidationProblemDetails(errors)
+                {
+                        Type =
+                            "https://api.studentmanagement.com/errors/validation-failed",
+
+                        Title =
+                            "Validation failed",
+
+                        Status =
+                            StatusCodes.Status400BadRequest,
+
+                        Detail =
+                            "One or more validation errors occurred.",
+
+                        Instance =
+                            context.HttpContext.Request.Path
+                };
+                problemDetails.Extensions["errorCode"] = "VALIDATION_FAILED";
+                problemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+
+                return new BadRequestObjectResult(problemDetails); 
+            };
+        });
 
 // Add Memory Cache
 builder.Services.AddMemoryCache();
