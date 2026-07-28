@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using StudentManagement.API.ExceptionHandlers;
+using StudentManagement.API.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -120,6 +121,7 @@ if (app.Environment.IsDevelopment())
 }
 
 //Middlewares
+app.UseMiddleware<CorellectionIdMiddleware>();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
