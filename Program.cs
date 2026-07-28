@@ -146,7 +146,7 @@ builder.Services
 
                 if(context.HttpContext.Items.TryGetValue("X-Correlation-ID", out var correlctionId) && correlctionId is string id)
                 {
-                    problemDetails.Extensions["correlationId"] = correlctionId;
+                    problemDetails.Extensions["correlationId"] = id;
                 }
 
                 return new BadRequestObjectResult(problemDetails); 
