@@ -14,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using StudentManagement.API.ExceptionHandlers;
 using StudentManagement.API.Middlewares;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing.Tree;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -142,6 +143,11 @@ builder.Services
                 };
                 problemDetails.Extensions["errorCode"] = "VALIDATION_FAILED";
                 problemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+
+                if(context.HttpContext.Items.TryGetValue("X-Correlation-ID", out var correlctionId) && correlctionId is string id)
+                {
+                    problemDetails.Extensions["correlationId"] = correlctionId;
+                }
 
                 return new BadRequestObjectResult(problemDetails); 
             };
