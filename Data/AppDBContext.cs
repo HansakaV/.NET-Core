@@ -29,6 +29,7 @@ public class AppDBContext : DbContext
         //Concurrency
         modelBuilder.Entity<Student>()
             .Property(student => student.Version)
+            .HasDefaultValue(1)
             .IsConcurrencyToken();
         
         //Indexing
