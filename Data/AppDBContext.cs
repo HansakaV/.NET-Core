@@ -31,6 +31,10 @@ public class AppDBContext : DbContext
             .Property(student => student.Version)
             .HasDefaultValue(1)
             .IsConcurrencyToken();
+
+        modelBuilder.Entity<Course>()
+            .Property(course => course.Version)
+            .IsConcurrencyToken();
         
         //Indexing
         modelBuilder.Entity<RefreshToken>()
@@ -48,11 +52,21 @@ public class AppDBContext : DbContext
         {
             property.HasIndex(u => u.Email).IsUnique();
         });
+
+        modelBuilder.Entity<Enrollment>()
+            .HasIndex(e => new{e.StuedntId, e.CourseId})
+            .IsUnique();
+        
+        modelBuilder.Entity<OutBoxMessage>()
+            .HasKey(o => o.Id);
     }
     public DbSet<Student> Students { get; set; }    
     public DbSet<User> Users {get; set;}
     public DbSet<Course> Courses {get;set;}
     public DbSet<RefreshToken> RefreshTokens {get;set;}
+    public DbSet<Enrollment> Enrollments {get;set;}
+    public DbSet<AuditLog> AuditLogs {get;set;}
+    public DbSet<OutBoxMessage> OutBoxMessages {get;set;}
 
     //BaseModel Override
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
