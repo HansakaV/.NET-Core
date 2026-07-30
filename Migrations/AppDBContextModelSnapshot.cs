@@ -135,7 +135,9 @@ namespace StudentManagement.API.Migrations
 
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.HasKey("Id");
 
