@@ -15,6 +15,7 @@ using StudentManagement.API.ExceptionHandlers;
 using StudentManagement.API.Middlewares;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing.Tree;
+using StudentManagement.API.Validators.auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +72,9 @@ builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<StudentCreateRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<StudentUpdateRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<ForgetPasswordRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<AppDBContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddAutoMapper(typeof(Program));
