@@ -88,7 +88,10 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IMessagePublisher, MessagePublisher>();
 
+//Background Worker
+builder.Services.AddHostedService<OutBoxBackgroundService>();
 
 //JWT Authentication Cofiguration
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(Options =>
