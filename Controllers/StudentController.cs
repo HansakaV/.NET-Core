@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentManagement.API.DTOs;
+using StudentManagement.API.DTOs.Students;
 using StudentManagement.API.Interfaces;
+using StudentManagement.API.util;
 
 namespace StudentManagement.API.Controllers;
 
@@ -18,23 +20,27 @@ public class StudentController : ControllerBase
     }
 
 [HttpGet]
-public async Task<ActionResult<IEnumerable<StudentResponseDto>>> GetStudents()
+[ProducesResponseType(StatusCodes.Status200OK)]
+public async Task<ActionResult<PagedResult<StudentResponseDto>>> GetStudents(
+    [FromQuery] StudentQueryParameters queryParameters
+)
 {
-    return await _studentService.GetAllAsync();
+    var result=  await _studentService.GetAllAsync(queryParameters);
+    return Ok(result);
 }
 
 [HttpGet("{id}")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
 public async Task<ActionResult<StudentResponseDto>> GetStudentById(int id)
     {
         var student = await _studentService.GetByIdAsync(id);
-        if (student == null)
-        {
-            return NotFound();
-        }
         return Ok(student);
     }
 
 [HttpPost]
+[ProducesResponseType(StatusCodes.Status201Created)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
 public async Task<ActionResult<StudentResponseDto>> CreateStudent(StudentCreateRequestDto request)
     {
         var createdStudent = await _studentService.CreateAsync(request);
@@ -42,6 +48,9 @@ public async Task<ActionResult<StudentResponseDto>> CreateStudent(StudentCreateR
     }
 
 [HttpPut("{id}")]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
 public async Task<IActionResult> UpdateStudent(int id, StudentUpdateRequestDto request)
     {
         if (id != request.Id)
@@ -53,6 +62,8 @@ public async Task<IActionResult> UpdateStudent(int id, StudentUpdateRequestDto r
     }
 
 [HttpDelete("{id}")]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
 public async Task<IActionResult> DeleteStudent(int id)
     {
         await _studentService.DeleteAsync(id);

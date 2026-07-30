@@ -9,10 +9,88 @@ public class AppDBContext : DbContext
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        //Global filters
         modelBuilder.Entity<Student>()
-            .Property(s => s.Course)
-            .HasConversion<string>();
+            .HasQueryFilter(s => !s.IsDeleted);
+
+        //Relationships
+        modelBuilder.Entity<Student>()
+            .HasOne(s => s.Course)
+            .WithMany(c => c.Students)
+            .HasForeignKey(s => s.CourseId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        modelBuilder.Entity<RefreshToken>()
+            .HasOne(token => token.User)
+            .WithMany(user => user.RefreshTokens)
+            .HasForeignKey(token => token.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        //Concurrency
+        modelBuilder.Entity<Student>()
+            .Property(student => student.Version)
+            .HasDefaultValue(1)
+            .IsConcurrencyToken();
+
+        modelBuilder.Entity<Course>()
+            .Property(course => course.Version)
+            .IsConcurrencyToken();
+        
+        //Indexing
+        modelBuilder.Entity<RefreshToken>()
+            .HasIndex(token => token.TokenHash)
+            .IsUnique();
+                
+        modelBuilder.Entity<Student>(property =>
+        {
+            property.HasIndex(s => s.Email).IsUnique();
+            property.HasIndex(s => s.Name);
+            property.HasIndex(s => s.CourseId);
+
+        });
+        modelBuilder.Entity<User>(property =>
+        {
+            property.HasIndex(u => u.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<Enrollment>()
+            .HasIndex(e => new{e.StuedntId, e.CourseId})
+            .IsUnique();
+        
+        modelBuilder.Entity<OutBoxMessage>()
+            .HasKey(o => o.Id);
     }
     public DbSet<Student> Students { get; set; }    
     public DbSet<User> Users {get; set;}
+    public DbSet<Course> Courses {get;set;}
+    public DbSet<RefreshToken> RefreshTokens {get;set;}
+    public DbSet<Enrollment> Enrollments {get;set;}
+    public DbSet<AuditLog> AuditLogs {get;set;}
+    public DbSet<OutBoxMessage> OutBoxMessages {get;set;}
+
+    //BaseModel Override
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker.Entries<BaseEntity>();
+        foreach(var entry in entries)
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    entry.Entity.IsDeleted = false;
+                    break;
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+
+                    if(entry.Entity.IsDeleted && entry.Entity.DeletedAt == null)
+                    {
+                        entry.Entity.DeletedAt = DateTime.UtcNow;
+                    }
+                    break;
+            }
+        }
+        return base.SaveChangesAsync(cancellationToken);
+    }
 }

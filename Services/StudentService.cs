@@ -2,7 +2,14 @@ using StudentManagement.API.Interfaces;
 using StudentManagement.API.Models;
 using StudentManagement.API.DTOs;
 using Microsoft.Extensions.Caching.Memory;
-
+using AutoMapper;
+using StudentManagement.API.DTOs.Students;
+using Microsoft.Extensions.Primitives;
+using System.Threading;
+using StudentManagement.API.util;
+using StudentManagement.API.Data;
+using Microsoft.EntityFrameworkCore;
+using StudentManagement.API.Middlewares.Exceptions;
 
 namespace StudentManagement.API.Services
 {
@@ -10,79 +17,69 @@ namespace StudentManagement.API.Services
     {
         private readonly IStudentRepository _isStudentRepository;
         private readonly IMemoryCache _cache;
-        private const string StudentCacheKey = "students_cache_key";
-        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache)
+        private readonly IMapper _mapper;
+        private readonly AppDBContext _context;
+
+        private static CancellationTokenSource _resetCacheToken = new();
+
+        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache, IMapper mapper, AppDBContext context)
         {
             _isStudentRepository = isStudentRepository;
             _cache = cache;
+            _mapper = mapper;
+            _context = context;
         }
 
-        public async Task<List<StudentResponseDto>> GetAllAsync()
+        public async Task<PagedResult<StudentResponseDto>> GetAllAsync(StudentQueryParameters query)
         {
-            if(!_cache.TryGetValue(StudentCacheKey, out List<StudentResponseDto>? cachedStudents))
-            {
-                var students = await _isStudentRepository.GetAllAsync();
+            var cacheKey = $"students_page_{query.page}_size_{query.pageSize}_q{query.SearchTerm}_c{query.CourseId}_sort{query.Sortby}_desc{query.IsDecending}";
 
-                cachedStudents = students.Select(student => new StudentResponseDto
+            if (!_cache.TryGetValue(cacheKey, out PagedResult<StudentResponseDto>? cachedStudents))
+            {
+                var students = await _isStudentRepository.GetAllAsync(query);
+
+                var mappedItems = _mapper.Map<List<StudentResponseDto>>(students.Items);
+                cachedStudents = new PagedResult<StudentResponseDto>
                 {
-                    Id = student.Id,
-                    Name = student.Name,
-                    Email = student.Email,
-                    Course = student.Course,
-                    Phone = student.Phone
-                }).ToList();
+                    Page = students.Page,
+                    PageSize = students.PageSize,
+                    TotalRecords = students.TotalRecords,
+                    TotalPages = students.TotalPages,
+                    HasNextPage = students.HasNextPage,
+                    HasPreviousPage = students.HasPreviousPage,
+                    Items = mappedItems
+                };
 
                 var cacheOptions = new MemoryCacheEntryOptions()
                     .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
-                    .SetSlidingExpiration(TimeSpan.FromMinutes(2));
+                    .SetSlidingExpiration(TimeSpan.FromMinutes(2))
+                    .AddExpirationToken(new CancellationChangeToken(_resetCacheToken.Token));
 
-                _cache.Set(StudentCacheKey, cachedStudents, cacheOptions);
-
+                _cache.Set(cacheKey, cachedStudents, cacheOptions);
             }
+
             return cachedStudents!;
         }
+
         public async Task<StudentResponseDto?> GetByIdAsync(int id)
         {
             var student = await _isStudentRepository.GetByIdAsync(id);
-            if (student == null)
-            {
-                return null;
-            }
+            if (student == null) throw new StudentNotFoundException(id);
 
-            return new StudentResponseDto
-            {
-                Id = student.Id,
-                Name = student.Name,
-                Email = student.Email,
-                Course = student.Course,
-                Phone = student.Phone
-            };
+            return _mapper.Map<StudentResponseDto>(student);
         }
 
         public async Task<StudentResponseDto> CreateAsync(StudentCreateRequestDto request)
         {
             var exitedStudent = await _isStudentRepository.GetByEmailAsync(request.Email);
-            if(exitedStudent != null) throw new Exception("Email Already Exists !");
+            if (exitedStudent != null) throw new ArgumentException("Email Already Exists !");
 
-            var student = new Student
-            {
-                Name = request.Name,
-                Email = request.Email,
-                Course = request.Course,
-                Phone = request.Phone
-            };
-
+            var student = _mapper.Map<Student>(request);
             var createdStudent = await _isStudentRepository.CreateAsync(student);
-            _cache.Remove(StudentCacheKey); // Invalidate the cache after creating a new student
 
-            return new StudentResponseDto
-            {
-                Id = createdStudent.Id,
-                Name = createdStudent.Name,
-                Email = createdStudent.Email,
-                Course = createdStudent.Course,
-                Phone = createdStudent.Phone
-            };
+            ClearAllStudentCaches();
+
+            return _mapper.Map<StudentResponseDto>(createdStudent);
         }
 
         public async Task UpdateAsync(StudentUpdateRequestDto request)
@@ -90,18 +87,25 @@ namespace StudentManagement.API.Services
             var student = await _isStudentRepository.GetByIdAsync(request.Id);
             if (student == null)
             {
-                throw new KeyNotFoundException($"Student with ID {request.Id} not found.");
+                throw new StudentNotFoundException(request.Id);
             }
-            var updatedStudent = new Student
+            _context.Entry(student)
+                .Property(student => student.Version)
+                .OriginalValue = request.Version;
+            
+            var updatedStudent = _mapper.Map(request, student);
+            updatedStudent.Version = request.Version + 1;
+
+            try
             {
-                Id = request.Id,
-                Name = request.Name ?? student.Name,
-                Email = request.Email ?? student.Email,
-                Course = request.Course ?? student.Course,
-                Phone = request.Phone ?? student.Phone
-            };
-            await _isStudentRepository.UpdateAsync(updatedStudent);
-            _cache.Remove(StudentCacheKey); // Invalidate the cache after updating a student
+                await _isStudentRepository.UpdateAsync(updatedStudent);
+                ClearAllStudentCaches();
+            }
+            catch(DbUpdateConcurrencyException)
+            {
+                throw new StudentConcurrencyException(
+                    "The record you attempted to edit was modified by another user after you got the original value. Please refresh the page and try again.");
+            }
         }
 
         public async Task DeleteAsync(int id)
@@ -109,10 +113,20 @@ namespace StudentManagement.API.Services
             var rowsEffected = await _isStudentRepository.DeleteAsync(id);
             if (rowsEffected == 0)
             {
-                throw new KeyNotFoundException($"Student with ID {id} not found.");
+                throw new StudentNotFoundException(id);
             }
-            _cache.Remove(StudentCacheKey); // Invalidate the cache after deleting a student
+
+            ClearAllStudentCaches();
         }
-        
+
+        private static void ClearAllStudentCaches()
+        {
+            if (!_resetCacheToken.IsCancellationRequested)
+            {
+                _resetCacheToken.Cancel();
+                _resetCacheToken.Dispose();
+                _resetCacheToken = new CancellationTokenSource();
+            }
+        }
     }
 }

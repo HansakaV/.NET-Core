@@ -1,7 +1,7 @@
 
 using FluentValidation;
 using StudentManagement.API.DTOs;
-using StudentManagement.API.Enums;
+
 
 namespace StudentManagement.API.Validators.Students
 {
@@ -28,9 +28,9 @@ namespace StudentManagement.API.Validators.Students
                 .Unless(x => string.IsNullOrEmpty(x.Phone))
                 .WithMessage("Wrong Phone Number use 071xxxxxxxx or 947xxxxxxxx");
             
-            RuleFor(x => x.Course)
-                .IsInEnum()
-                .When(x => x.Course.HasValue)
+            RuleFor(x => x.CourseId)
+                .GreaterThan(0)
+                .When(x => x.CourseId.HasValue)
                 .WithMessage("Invalid Course");
         }
     }

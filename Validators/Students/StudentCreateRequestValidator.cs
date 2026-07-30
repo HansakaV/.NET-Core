@@ -20,8 +20,8 @@ namespace StudentManagement.API.Validators.Students
                 .NotEmpty().WithMessage("Phone Number Requird")
                 .Matches(@"^(07\d{8}|947\d{8})$").WithMessage("Wrong Phone Number use 071xxxxxxxx or 947xxxxxxxx");
 
-            RuleFor(x => x.Course)
-                .IsInEnum().WithMessage("invalid Course Selected");
+            RuleFor(x => x.CourseId)
+                .GreaterThan(0).WithMessage("invalid Course Selected");
 
         }
     }

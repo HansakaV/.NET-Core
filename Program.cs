@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using StudentManagement.API.Interfaces;
 using StudentManagement.API.Repositories;
 using StudentManagement.API.Services;
-using StudentManagement.API.Middlewares;
 using Serilog;
 using FluentValidation;
 using StudentManagement.API.Validators.Students;
@@ -11,8 +10,12 @@ using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.Reflection.Metadata;
 using Microsoft.OpenApi.Models;
+using StudentManagement.API.ExceptionHandlers;
+using StudentManagement.API.Middlewares;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing.Tree;
+using StudentManagement.API.Validators.auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,8 +71,14 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<StudentCreateRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<StudentUpdateRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<ForgetPasswordRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<AppDBContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddHttpContextAccessor();
 
 //DI Registration
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
@@ -77,6 +86,12 @@ builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IMessagePublisher, MessagePublisher>();
+
+//Background Worker
+builder.Services.AddHostedService<OutBoxBackgroundService>();
 
 //JWT Authentication Cofiguration
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(Options =>
@@ -97,6 +112,55 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
+//Api Behavior options Validation
+builder.Services
+        .AddControllers()
+        .ConfigureApiBehaviorOptions(options =>
+        {
+            options.InvalidModelStateResponseFactory = 
+            context =>
+            {
+                var errors = context.ModelState
+                    .Where(entry =>
+                        entry.Value != null && entry.Value?.Errors.Count > 0 )
+                    .ToDictionary(
+                        entry => entry.Key,
+                        entry => entry.Value!.Errors    
+                            .Select(error =>
+                                string.IsNullOrWhiteSpace(error.ErrorMessage)
+                                    ? "The Enterd value Is Invalid"
+                                    : error.ErrorMessage)
+                            .ToArray());
+                
+                var problemDetails = new ValidationProblemDetails(errors)
+                {
+                        Type =
+                            "https://api.studentmanagement.com/errors/validation-failed",
+
+                        Title =
+                            "Validation failed",
+
+                        Status =
+                            StatusCodes.Status400BadRequest,
+
+                        Detail =
+                            "One or more validation errors occurred.",
+
+                        Instance =
+                            context.HttpContext.Request.Path
+                };
+                problemDetails.Extensions["errorCode"] = "VALIDATION_FAILED";
+                problemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+
+                if(context.HttpContext.Items.TryGetValue("X-Correlation-ID", out var correlctionId) && correlctionId is string id)
+                {
+                    problemDetails.Extensions["correlationId"] = id;
+                }
+
+                return new BadRequestObjectResult(problemDetails); 
+            };
+        });
+
 // Add Memory Cache
 builder.Services.AddMemoryCache();
 
@@ -116,6 +180,7 @@ if (app.Environment.IsDevelopment())
 }
 
 //Middlewares
+app.UseMiddleware<CorellectionIdMiddleware>();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();

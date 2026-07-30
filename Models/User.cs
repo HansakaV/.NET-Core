@@ -13,6 +13,7 @@ namespace StudentManagement.API.Models
         public DateTime CreatedAt{get; set;} = DateTime.UtcNow;
         public string? VerificationCode{get; set;} 
         public DateTime? VerificationCodeExpiry{get; set;}
+        public ICollection<RefreshToken> RefreshTokens {get;set;} = new List<RefreshToken>();
 
     }
 }
