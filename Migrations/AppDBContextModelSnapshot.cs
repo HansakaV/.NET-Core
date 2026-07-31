@@ -64,18 +64,14 @@ namespace StudentManagement.API.Migrations
 
             modelBuilder.Entity("StudentManagement.API.Models.Course", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("CourseId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CourseId"));
 
                     b.Property<int>("AvailableSeats")
                         .HasColumnType("integer");
-
-                    b.Property<string>("CourseCode")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("CourseName")
                         .IsRequired()
@@ -88,7 +84,7 @@ namespace StudentManagement.API.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
 
-                    b.HasKey("Id");
+                    b.HasKey("CourseId");
 
                     b.ToTable("Courses");
                 });
@@ -119,9 +115,6 @@ namespace StudentManagement.API.Migrations
                     b.Property<int>("StudentId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("StuedntId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -129,9 +122,7 @@ namespace StudentManagement.API.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.HasIndex("StudentId");
-
-                    b.HasIndex("StuedntId", "CourseId")
+                    b.HasIndex("StudentId", "CourseId")
                         .IsUnique();
 
                     b.ToTable("Enrollments");

@@ -89,6 +89,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IMessagePublisher, MessagePublisher>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 //Background Worker
 builder.Services.AddHostedService<OutBoxBackgroundService>();
