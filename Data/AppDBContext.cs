@@ -54,7 +54,7 @@ public class AppDBContext : DbContext
         });
 
         modelBuilder.Entity<Enrollment>()
-            .HasIndex(e => new{e.StuedntId, e.CourseId})
+            .HasIndex(e => new{e.StudentId, e.CourseId})
             .IsUnique();
         
         modelBuilder.Entity<OutBoxMessage>()
