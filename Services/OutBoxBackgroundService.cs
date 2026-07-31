@@ -63,8 +63,7 @@ namespace StudentManagement.API.Services
                     _logger.LogError(e, "An Error proceesing while outbox Message");
                 }
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-            }
-            
+            }  
         }
     }
 }
