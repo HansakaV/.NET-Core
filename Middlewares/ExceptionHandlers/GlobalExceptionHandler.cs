@@ -103,6 +103,20 @@ public sealed class GlobalExceptionHandler
                     StatusCodes.Status409Conflict,
                     "Concurrency conflict",
                     exception.Message),
+            
+            CourseFullException =>
+                CreateProblemDetails(
+                    httpContext,
+                    StatusCodes.Status400BadRequest,
+                    "Course Full",
+                    exception.Message),
+            
+            DuplicateEnrollmentException =>
+                CreateProblemDetails(
+                    httpContext,
+                    StatusCodes.Status409Conflict,
+                    "Duplicate Enrollment",
+                    exception.Message),
 
             _ =>
                 CreateProblemDetails(
