@@ -67,6 +67,7 @@ public class AppDBContext : DbContext
     public DbSet<Enrollment> Enrollments {get;set;}
     public DbSet<AuditLog> AuditLogs {get;set;}
     public DbSet<OutBoxMessage> OutBoxMessages {get;set;}
+    public DbSet<ProccedRequest> ProccedRequests {get; set;}
 
     //BaseModel Override
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
