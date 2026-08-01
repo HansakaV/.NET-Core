@@ -18,15 +18,27 @@ namespace StudentManagement.API.Services
             _context = context;
         }
 
-        public async Task EnrollStudentAsync(EnrollmentRequestDTO enrollmentRequest, CancellationToken cancellationToken)
+        public async Task<EnrollmentResponseDTO> EnrollStudentAsync(EnrollmentRequestDTO enrollmentRequest, CancellationToken cancellationToken)
         {
+           if (string.IsNullOrWhiteSpace(enrollmentRequest.IdempotencyKey))
+           {
+                throw new ArgumentException("Idempotency Key Is required for this oprtation");
+           }
            var strategy =  _context.Database.CreateExecutionStrategy();
-           await strategy.ExecuteAsync(async () =>
+           return await strategy.ExecuteAsync<EnrollmentResponseDTO>(async () =>
            {
                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
                try
                {
+                var exitingProcessRequest = await _context.ProccedRequests
+                        .FirstOrDefaultAsync(process => process.IdempotencyKey == enrollmentRequest.IdempotencyKey, cancellationToken);
+                if(exitingProcessRequest != null)
+                   {
+                       var cachedResponse = JsonSerializer.Deserialize<EnrollmentResponseDTO>(exitingProcessRequest.ResponsePayload);
+                       return cachedResponse!;
+                   }
+
                 var students = await _context.Students
                         .FirstOrDefaultAsync(student => student.Id == enrollmentRequest.StudentId, cancellationToken);
                 if(students == null) throw new StudentNotFoundException(enrollmentRequest.StudentId);
@@ -78,10 +90,27 @@ namespace StudentManagement.API.Services
                 };
                 _context.OutBoxMessages.Add(outBoxMessaage);
 
+                var enrollmentResponse = new EnrollmentResponseDTO
+                {
+                    Id = enrollment.Id,
+                    StudentId = enrollment.StudentId,
+                    CourseId = enrollment.CourseId,
+                    EnrolledAt = enrollment.EnrolledAt
+                };
+
+                var proccedRequest = new ProccedRequest
+                {
+                    IdempotencyKey = enrollmentRequest.IdempotencyKey,
+                    ResponsePayload = JsonSerializer.Serialize(enrollmentResponse),
+                    ProcessedAt = DateTime.UtcNow
+                };
+
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
+
+                return enrollmentResponse;
+                
                }
-               
                catch 
                {
                 await transaction.RollbackAsync(cancellationToken);
