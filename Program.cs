@@ -22,11 +22,6 @@ var builder = WebApplication.CreateBuilder(args);
 var jwtSecret = builder.Configuration["JwtSettings:TokenSecret"] ?? throw new InvalidOperationException("Secret Not Found");
 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .WriteTo.File("Logs/logs.txt", rollingInterval: RollingInterval.Day)
-    .CreateLogger();
-
 // Add services to the container.
 builder.Host.UseSerilog();
 builder.Services.AddOpenApi(options =>
@@ -67,6 +62,17 @@ builder.Services.AddOpenApi(options =>
         return Task.CompletedTask;
     });  
 });
+
+//logger configuration
+builder.Services.AddSerilog((services, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .ReadFrom.Configuration(builder.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext();
+
+});
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
@@ -167,6 +173,7 @@ builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
+
 //HTTP Request Pipeline Configuration
 if (app.Environment.IsDevelopment())
 {
@@ -181,6 +188,7 @@ if (app.Environment.IsDevelopment())
 }
 
 //Middlewares
+app.UseSerilogRequestLogging();
 app.UseMiddleware<CorellectionIdMiddleware>();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
