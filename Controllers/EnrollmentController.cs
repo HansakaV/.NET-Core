@@ -24,8 +24,8 @@ namespace StudentManagement.API.Controllers
         public async Task<ActionResult<EnrollmentResponseDTO>> EnrollStudent(
             [FromBody] EnrollmentRequestDTO enrollmentRequest, CancellationToken cancellationToken)
         {
-             await _enrollmentService.EnrollStudentAsync(enrollmentRequest,cancellationToken);
-            return Created();
+             var result = await _enrollmentService.EnrollStudentAsync(enrollmentRequest,cancellationToken);
+            return CreatedAtAction(nameof(EnrollStudent), new{id = result.Id}, result);
         }
     }
 }
