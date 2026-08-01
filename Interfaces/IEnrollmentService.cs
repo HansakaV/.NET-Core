@@ -4,6 +4,6 @@ namespace StudentManagement.API.Interfaces
 {
     public interface IEnrollmentService
     {
-        Task EnrollStudentAsync(EnrollmentRequestDTO enrollmentRequest , CancellationToken cancellationToken);
+        Task<EnrollmentResponseDTO> EnrollStudentAsync (EnrollmentRequestDTO enrollmentRequest , CancellationToken cancellationToken);
     }
 }
