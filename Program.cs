@@ -17,6 +17,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing.Tree;
 using StudentManagement.API.Validators.auth;
 
+try
+{
+Log.Logger = new LoggerConfiguration()  
+        .WriteTo.Console()
+        .CreateBootstrapLogger();
+    
+Log.Information("Starting Student Management API");
+
 var builder = WebApplication.CreateBuilder(args);
 
 var jwtSecret = builder.Configuration["JwtSettings:TokenSecret"] ?? throw new InvalidOperationException("Secret Not Found");
@@ -196,3 +204,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+}
+catch (Exception e)
+{
+    Log.Fatal(e, "Student Management API Terminated Unexpectedly");
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
