@@ -31,7 +31,6 @@ var jwtSecret = builder.Configuration["JwtSettings:TokenSecret"] ?? throw new In
 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
 // Add services to the container.
-builder.Host.UseSerilog();
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -83,7 +82,6 @@ builder.Services.AddSerilog((services, loggerConfiguration) =>
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
-builder.Services.AddControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<StudentCreateRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<StudentUpdateRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<ForgetPasswordRequestValidator>();
@@ -117,10 +115,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         IssuerSigningKey = key,
 
         ValidateIssuer = true,
-        ValidIssuer = "StudentManagement.API",
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
 
         ValidateAudience = true,
-        ValidAudience = "StudentManagement.Client",
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
 
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
@@ -196,8 +194,8 @@ if (app.Environment.IsDevelopment())
 }
 
 //Middlewares
-app.UseSerilogRequestLogging();
 app.UseMiddleware<CorellectionIdMiddleware>();
+app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
