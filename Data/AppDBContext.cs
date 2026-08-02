@@ -12,6 +12,8 @@ public class AppDBContext : DbContext
         //Global filters
         modelBuilder.Entity<Student>()
             .HasQueryFilter(s => !s.IsDeleted);
+        modelBuilder.Entity<Enrollment>()
+            .HasQueryFilter(e => !e.IsDeleted);
 
         //Relationships
         modelBuilder.Entity<Student>()
