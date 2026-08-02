@@ -75,7 +75,7 @@ namespace StudentManagement.API.Services
         {
             var normalizeEmail = request.Email.Trim().ToLowerInvariant();
 
-            _logger.LogInformation("Begining Student Create For Email Domain {EmailDomain}", ExtractEmailDomain(normalizeEmail));
+            _logger.LogInformation("Begining Student Create For Email Domain {EmailDomain}", MaskingEmail(normalizeEmail));
             var exitedStudent = await _isStudentRepository.GetByEmailAsync(request.Email);
             if (exitedStudent != null) throw new ArgumentException("Email Already Exists !");
 
@@ -142,6 +142,21 @@ namespace StudentManagement.API.Services
                 ? email[(seperatorIndex+1)..]
                 : "unknown";
 
+        }
+
+        private static string MaskingEmail(string email)
+        {
+            if(string.IsNullOrWhiteSpace(email)) return "***";
+
+           var parts =  email.Split('@', StringSplitOptions.RemoveEmptyEntries);
+           if(parts.Length !=2) return "***";
+
+           var localParts = parts[0];
+           var visibleParts= localParts.Length > 2
+                ? localParts[..2]
+                : localParts[..1];
+            
+            return $"{visibleParts}***@{parts[1]}";
         }
     }
 }
