@@ -75,7 +75,7 @@ namespace StudentManagement.API.Services
         {
             var normalizeEmail = request.Email.Trim().ToLowerInvariant();
 
-            _logger.LogDebug("Begining Student Create For Email Domain {EmailDomain}", ExtractEmailDomain(normalizeEmail));
+            _logger.LogInformation("Begining Student Create For Email Domain {EmailDomain}", ExtractEmailDomain(normalizeEmail));
             var exitedStudent = await _isStudentRepository.GetByEmailAsync(request.Email);
             if (exitedStudent != null) throw new ArgumentException("Email Already Exists !");
 
