@@ -5,14 +5,12 @@ using StudentManagement.API.Middlewares.Exceptions;
 
 namespace StudentManagement.API.ExceptionHandlers;
 
-public sealed class GlobalExceptionHandler
-    : IExceptionHandler
+public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
     private const string CorrelationHeader = "X-Correlation-ID";
 
-    public GlobalExceptionHandler(
-        ILogger<GlobalExceptionHandler> logger)
+    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
     {
         _logger = logger;
     }
@@ -22,114 +20,85 @@ public sealed class GlobalExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var corellectionId = httpContext.Items[CorrelationHeader]?.ToString();
-        var problemDetails = CreateProblemDetails(
-            httpContext,
-            exception);
+        var correlationId = httpContext.Items[CorrelationHeader]?.ToString();
+        var traceId = httpContext.TraceIdentifier;
 
+        var (problemDetails, errorCode) = CreateProblemDetails(httpContext, exception);
+
+        // 1. Enrich Extensions for Client Response
+        problemDetails.Extensions["traceId"] = traceId;
+        problemDetails.Extensions["errorCode"] = errorCode;
+
+        if (!string.IsNullOrWhiteSpace(correlationId))
+        {
+            problemDetails.Extensions["correlationId"] = correlationId;
+        }
+
+        // 2. Production Structured Logging Strategy
         if (problemDetails.Status >= 500)
         {
+            // 🚨 500 Server Errors: Log Full Stack Trace Exception
             _logger.LogError(
                 exception,
-                "Unhandled exception occurred. TraceId: {TraceId}",
-                httpContext.TraceIdentifier);
+                "Unhandled exception occurred for {Method} {Path}. TraceId: {TraceId}, ErrorCode: {ErrorCode}",
+                httpContext.Request.Method,
+                httpContext.Request.Path,
+                traceId,
+                errorCode);
         }
         else
         {
+            // ⚠️ 4xx Business/Domain Errors: Log Clean Warning without noisy StackTraces
             _logger.LogWarning(
-                exception,
-                "Request failed with status {StatusCode}. TraceId: {TraceId}",
+                "Request failed for {Method} {Path}. StatusCode: {StatusCode}, ErrorCode: {ErrorCode}, Detail: {Detail}, TraceId: {TraceId}",
+                httpContext.Request.Method,
+                httpContext.Request.Path,
                 problemDetails.Status,
-                httpContext.TraceIdentifier);
-        }
-        if (!string.IsNullOrWhiteSpace(corellectionId))
-        {
-            problemDetails.Extensions["correlationId"] = corellectionId;
+                errorCode,
+                problemDetails.Detail,
+                traceId);
         }
 
-        httpContext.Response.StatusCode =
-            problemDetails.Status
-            ?? StatusCodes.Status500InternalServerError;
+        httpContext.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
-        await httpContext.Response.WriteAsJsonAsync(
-            problemDetails,
-            cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
         return true;
     }
 
-    private static ProblemDetails CreateProblemDetails(
+    private static (ProblemDetails Problem, string ErrorCode) CreateProblemDetails(
         HttpContext httpContext,
         Exception exception)
     {
-        var problemDetails = exception switch
+        return exception switch
         {
             ValidationException validationException =>
-                CreateValidationProblemDetails(
-                    httpContext,
-                    validationException),
+                (CreateValidationProblemDetails(httpContext, validationException), "VALIDATION_FAILED"),
 
             StudentNotFoundException =>
-                CreateProblemDetails(
-                    httpContext,
-                    StatusCodes.Status404NotFound,
-                    "Student not found",
-                    exception.Message),
+                (CreateProblemDetails(httpContext, StatusCodes.Status404NotFound, "Student Not Found", exception.Message), "STUDENT_NOT_FOUND"),
 
             KeyNotFoundException =>
-                CreateProblemDetails(
-                    httpContext,
-                    StatusCodes.Status404NotFound,
-                    "Resource not found",
-                    exception.Message),
+                (CreateProblemDetails(httpContext, StatusCodes.Status404NotFound, "Resource Not Found", exception.Message), "RESOURCE_NOT_FOUND"),
 
             UnauthorizedAccessException =>
-                CreateProblemDetails(
-                    httpContext,
-                    StatusCodes.Status401Unauthorized,
-                    "Unauthorized",
-                    exception.Message),
+                (CreateProblemDetails(httpContext, StatusCodes.Status401Unauthorized, "Unauthorized", exception.Message), "UNAUTHORIZED"),
 
             ForbiddenException =>
-                CreateProblemDetails(
-                    httpContext,
-                    StatusCodes.Status403Forbidden,
-                    "Forbidden",
-                    exception.Message),
+                (CreateProblemDetails(httpContext, StatusCodes.Status403Forbidden, "Forbidden", exception.Message), "FORBIDDEN"),
 
             StudentConcurrencyException =>
-                CreateProblemDetails(
-                    httpContext,
-                    StatusCodes.Status409Conflict,
-                    "Concurrency conflict",
-                    exception.Message),
-            
+                (CreateProblemDetails(httpContext, StatusCodes.Status409Conflict, "Concurrency Conflict", exception.Message), "CONCURRENCY_CONFLICT"),
+
             CourseFullException =>
-                CreateProblemDetails(
-                    httpContext,
-                    StatusCodes.Status400BadRequest,
-                    "Course Full",
-                    exception.Message),
-            
+                (CreateProblemDetails(httpContext, StatusCodes.Status400BadRequest, "Course Full", exception.Message), "COURSE_FULL"),
+
             DuplicateEnrollmentException =>
-                CreateProblemDetails(
-                    httpContext,
-                    StatusCodes.Status409Conflict,
-                    "Duplicate Enrollment",
-                    exception.Message),
+                (CreateProblemDetails(httpContext, StatusCodes.Status409Conflict, "Duplicate Enrollment", exception.Message), "DUPLICATE_ENROLLMENT"),
 
             _ =>
-                CreateProblemDetails(
-                    httpContext,
-                    StatusCodes.Status500InternalServerError,
-                    "Internal server error",
-                    "An unexpected error occurred.")
+                (CreateProblemDetails(httpContext, StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred."), "INTERNAL_SERVER_ERROR")
         };
-
-        problemDetails.Extensions["traceId"] =
-            httpContext.TraceIdentifier;
-
-        return problemDetails;
     }
 
     private static ProblemDetails CreateProblemDetails(
@@ -147,10 +116,9 @@ public sealed class GlobalExceptionHandler
         };
     }
 
-    private static ValidationProblemDetails
-        CreateValidationProblemDetails(
-            HttpContext httpContext,
-            ValidationException exception)
+    private static ValidationProblemDetails CreateValidationProblemDetails(
+        HttpContext httpContext,
+        ValidationException exception)
     {
         var errors = exception.Errors
             .GroupBy(error => error.PropertyName)
@@ -164,7 +132,7 @@ public sealed class GlobalExceptionHandler
         return new ValidationProblemDetails(errors)
         {
             Status = StatusCodes.Status400BadRequest,
-            Title = "Validation failed",
+            Title = "Validation Failed",
             Detail = "One or more validation errors occurred.",
             Instance = httpContext.Request.Path
         };
