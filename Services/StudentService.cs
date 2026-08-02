@@ -19,15 +19,17 @@ namespace StudentManagement.API.Services
         private readonly IMemoryCache _cache;
         private readonly IMapper _mapper;
         private readonly AppDBContext _context;
+        private ILogger<StudentService> _logger;
 
         private static CancellationTokenSource _resetCacheToken = new();
 
-        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache, IMapper mapper, AppDBContext context)
+        public StudentService(IStudentRepository isStudentRepository, IMemoryCache cache, IMapper mapper, AppDBContext context,ILogger<StudentService> logger)
         {
             _isStudentRepository = isStudentRepository;
             _cache = cache;
             _mapper = mapper;
             _context = context;
+            _logger = logger;
         }
 
         public async Task<PagedResult<StudentResponseDto>> GetAllAsync(StudentQueryParameters query)
@@ -71,6 +73,9 @@ namespace StudentManagement.API.Services
 
         public async Task<StudentResponseDto> CreateAsync(StudentCreateRequestDto request)
         {
+            var normalizeEmail = request.Email.Trim().ToLowerInvariant();
+
+            _logger.LogDebug("Begining Student Create For Email Domain {EmailDomain}", ExtractEmailDomain(normalizeEmail));
             var exitedStudent = await _isStudentRepository.GetByEmailAsync(request.Email);
             if (exitedStudent != null) throw new ArgumentException("Email Already Exists !");
 
@@ -127,6 +132,16 @@ namespace StudentManagement.API.Services
                 _resetCacheToken.Dispose();
                 _resetCacheToken = new CancellationTokenSource();
             }
+        }
+
+        private static string ExtractEmailDomain(string email)
+        {
+            var seperatorIndex = email.LastIndexOf('@');
+            
+            return seperatorIndex >= 0 
+                ? email[(seperatorIndex+1)..]
+                : "unknown";
+
         }
     }
 }
