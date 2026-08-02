@@ -83,7 +83,7 @@ public async Task<IActionResult> LogoutAsync()
             HttpOnly = true,
             Secure = !_env.IsDevelopment(),
             SameSite = SameSiteMode.Strict,
-            Path = "api/login"
+            Path = "/api/login"
         });
         return NoContent();
     }
