@@ -16,6 +16,10 @@ using StudentManagement.API.Middlewares;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing.Tree;
 using StudentManagement.API.Validators.auth;
+using Microsoft.Extensions.Options;
+using Serilog.Events;
+using Serilog.Extensions.Hosting;
+using System.Security.Claims;
 
 try
 {
@@ -82,13 +86,25 @@ builder.Services.AddSerilog((services, loggerConfiguration) =>
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+//validators Registration
 builder.Services.AddValidatorsFromAssemblyContaining<StudentCreateRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<StudentUpdateRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<ForgetPasswordRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddDbContext<AppDBContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//Databsae Context
+builder.Services.AddDbContext<AppDBContext>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableDetailedErrors();
+    }
+});
+        
 builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddHttpContextAccessor();
 
@@ -195,12 +211,43 @@ if (app.Environment.IsDevelopment())
 
 //Middlewares
 app.UseMiddleware<CorellectionIdMiddleware>();
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options =>
+{
+    options.GetLevel = (context, elapsed, exception) =>
+    {
+        if(exception is not null || context.Response.StatusCode >= 500)
+            return LogEventLevel.Warning;
+        
+        if(context.Response.StatusCode >= 400)
+            return LogEventLevel.Warning;
+        
+        return LogEventLevel.Information;
+    };
+
+    options.EnrichDiagnosticContext = (diagnosticContext, context) =>
+    {
+        diagnosticContext.Set("TraceId", context.TraceIdentifier);
+        if(context.Items.TryGetValue("X-Correlation-ID", out var correlationId) && correlationId is string id)
+        {
+            diagnosticContext.Set("CorreletionId", id);
+        }
+
+        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            diagnosticContext.Set("UserId", userId);
+        }
+    };
+});
+
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();
 }
 catch (Exception e)
